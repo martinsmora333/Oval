@@ -168,6 +168,27 @@ class LocationUtils {
     }
   }
 
+  /// Returns the first placemark for coordinates when available.
+  static Future<Placemark?> getPlacemarkFromCoordinates({
+    required double latitude,
+    required double longitude,
+    String language = 'en',
+  }) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        latitude,
+        longitude,
+        localeIdentifier: language,
+      );
+      if (placemarks.isEmpty) {
+        return null;
+      }
+      return placemarks.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Returns a formatted address string for coordinates.
   static Future<String> getFormattedAddress({
     required double latitude,

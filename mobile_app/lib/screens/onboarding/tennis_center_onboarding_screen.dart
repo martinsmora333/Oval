@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:figma_squircle/figma_squircle.dart';
 import 'package:flutter/cupertino.dart';
 
-import '../../../models/geo_point.dart';
-import '../../../models/tennis_center_model.dart';
-import '../../../models/court_model.dart';
-import '../../../providers/auth_provider.dart';
-import '../../../providers/tennis_centers_provider.dart';
+import '../../models/geo_point.dart';
+import '../../models/tennis_center_model.dart';
+import '../../models/court_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/tennis_centers_provider.dart';
+import '../../providers/onboarding_provider.dart';
+import '../../utils/location_utils.dart';
 import 'steps/center_info_step.dart';
 import 'steps/address_step.dart';
 import 'steps/contact_info_step.dart';
@@ -31,10 +33,11 @@ class TennisCenterOnboardingScreen extends StatefulWidget {
       _TennisCenterOnboardingScreenState();
 }
 
-class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScreen> {
+class _TennisCenterOnboardingScreenState
+    extends State<TennisCenterOnboardingScreen> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
-  
+
   // Form data
   final Map<String, dynamic> _formData = {
     'name': '',
@@ -46,10 +49,11 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
       'street': '',
       'city': '',
       'state': '',
+      'zipCode': '',
       'postalCode': '',
       'country': '',
-      'coordinates': null,
     },
+    'location': null,
     'operatingHours': {},
     'amenities': [],
     'courts': [],
@@ -61,7 +65,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize steps only once in initState
     _steps = [
       _createCenterInfoStep(),
@@ -72,7 +76,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
       _createReviewStep(),
     ];
   }
-  
+
   Widget _createCenterInfoStep() {
     return CenterInfoStep(
       key: const ValueKey('center_info_step'),
@@ -80,15 +84,20 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
       onChanged: (data) => _updateFormData(Map<String, dynamic>.from(data)),
     );
   }
-  
+
   Widget _createAddressStep() {
     return AddressStep(
       key: const ValueKey('address_step'),
-      initialData: Map<String, dynamic>.from(_formData['address'] as Map? ?? {}),
-      onChanged: (address) => _updateFormData({'address': Map<String, dynamic>.from(address as Map)}),
+      initialData: <String, dynamic>{
+        'address': Map<String, dynamic>.from(
+            _formData['address'] as Map? ?? const <String, dynamic>{}),
+        'location': _formData['location'],
+      },
+      onChanged: (address) =>
+          _updateFormData(Map<String, dynamic>.from(address as Map)),
     );
   }
-  
+
   Widget _createContactInfoStep() {
     return ContactInfoStep(
       key: const ValueKey('contact_info_step'),
@@ -96,23 +105,27 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
       onChanged: (data) => _updateFormData(Map<String, dynamic>.from(data)),
     );
   }
-  
+
   Widget _createOperatingHoursStep() {
     return OperatingHoursStep(
       key: const ValueKey('operating_hours_step'),
-      initialData: Map<String, dynamic>.from(_formData['operatingHours'] as Map? ?? {}),
-      onChanged: (hours) => _updateFormData({'operatingHours': Map<String, dynamic>.from(hours as Map)}),
+      initialData:
+          Map<String, dynamic>.from(_formData['operatingHours'] as Map? ?? {}),
+      onChanged: (hours) => _updateFormData(
+          {'operatingHours': Map<String, dynamic>.from(hours as Map)}),
     );
   }
-  
+
   Widget _createCourtsSetupStep() {
     return CourtsSetupStep(
       key: const ValueKey('courts_setup_step'),
-      initialCourts: List<Map<String, dynamic>>.from(_formData['courts'] as List? ?? []),
-      onChanged: (courts) => _updateFormData({'courts': List<Map<String, dynamic>>.from(courts)}),
+      initialCourts:
+          List<Map<String, dynamic>>.from(_formData['courts'] as List? ?? []),
+      onChanged: (courts) =>
+          _updateFormData({'courts': List<Map<String, dynamic>>.from(courts)}),
     );
   }
-  
+
   Widget _createReviewStep() {
     return ReviewStep(
       key: const ValueKey('review_step'),
@@ -125,19 +138,128 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
     setState(() {
       _formData.addAll(Map<String, dynamic>.from(data));
     });
+
+    final onboardingProvider =
+        Provider.of<OnboardingProvider>(context, listen: false);
+
+    if (data.containsKey('name') ||
+        data.containsKey('description') ||
+        data.containsKey('logoUrl')) {
+      onboardingProvider.updateCenterInfo(<String, dynamic>{
+        'name': _formData['name'] ?? '',
+        'description': _formData['description'] ?? '',
+        'logoUrl': _formData['logoUrl'],
+      });
+    }
+
+    if (data.containsKey('address') || data.containsKey('location')) {
+      final address = _normalizedAddressData();
+      final location = _formData['location'];
+      onboardingProvider.updateAddress(<String, dynamic>{
+        ...address,
+        if (location != null) 'location': location,
+      });
+    }
+
+    if (data.containsKey('phoneNumber') ||
+        data.containsKey('email') ||
+        data.containsKey('website')) {
+      onboardingProvider.updateContact(<String, dynamic>{
+        'phoneNumber': _formData['phoneNumber'] ?? '',
+        'email': _formData['email'] ?? '',
+        'website': _formData['website'] ?? '',
+      });
+    }
+
+    if (data.containsKey('operatingHours')) {
+      onboardingProvider.updateOperatingHours(
+        Map<String, dynamic>.from(
+          _formData['operatingHours'] as Map? ?? const <String, dynamic>{},
+        ),
+      );
+    }
+
+    if (data.containsKey('courts')) {
+      onboardingProvider.initializeCourts(
+        List<Map<String, dynamic>>.from(
+          _formData['courts'] as List? ?? const <Map<String, dynamic>>[],
+        ),
+      );
+    }
+  }
+
+  Map<String, dynamic> _normalizedAddressData() {
+    final rawAddress = Map<String, dynamic>.from(
+        _formData['address'] as Map? ?? const <String, dynamic>{});
+    final postalCode = rawAddress['zipCode']?.toString() ??
+        rawAddress['postalCode']?.toString() ??
+        '';
+
+    return <String, dynamic>{
+      'street': rawAddress['street']?.toString() ?? '',
+      'city': rawAddress['city']?.toString() ?? '',
+      'state': rawAddress['state']?.toString() ?? '',
+      'zipCode': postalCode,
+      'postalCode': postalCode,
+      'country': rawAddress['country']?.toString() ?? '',
+    };
+  }
+
+  Future<GeoPoint> _resolveCenterLocation() async {
+    final locationData = _formData['location'];
+    if (locationData is Map) {
+      final latitude = _readCoordinate(locationData['latitude']);
+      final longitude = _readCoordinate(locationData['longitude']);
+      if (latitude != null && longitude != null) {
+        return GeoPoint(latitude, longitude);
+      }
+    }
+
+    final address = _normalizedAddressData();
+    final formattedAddress = <String>[
+      address['street']?.toString() ?? '',
+      address['city']?.toString() ?? '',
+      address['state']?.toString() ?? '',
+      address['zipCode']?.toString() ?? '',
+      address['country']?.toString() ?? '',
+    ].where((part) => part.isNotEmpty).join(', ');
+
+    final resolvedLocation = await LocationUtils.getLocationFromAddress(
+      address: formattedAddress,
+    );
+    if (resolvedLocation == null) {
+      throw Exception(
+        'We could not determine the tennis center location from the entered address. Use current location or pin the center on the map before completing setup.',
+      );
+    }
+
+    return GeoPoint(
+      resolvedLocation.latitude,
+      resolvedLocation.longitude,
+    );
+  }
+
+  double? _readCoordinate(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value?.toString() ?? '');
   }
 
   bool _isSubmitting = false;
 
   Future<void> _completeOnboarding() async {
     if (_isSubmitting) return;
-    
+
     setState(() => _isSubmitting = true);
-    
+
     try {
-      final provider = Provider.of<TennisCentersProvider>(context, listen: false);
+      final provider =
+          Provider.of<TennisCentersProvider>(context, listen: false);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
+      final resolvedLocation = await _resolveCenterLocation();
+
       // Create tennis center with all collected data
       final tennisCenter = TennisCenterModel(
         id: widget.tempTennisCenterId,
@@ -146,10 +268,8 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
         phoneNumber: _formData['phoneNumber'] ?? '',
         email: _formData['email'] ?? '',
         website: _formData['website'],
-        address: _formData['address'] is Map<String, dynamic> 
-            ? Address.fromMap(_formData['address']) 
-            : Address(street: '', city: '', state: '', zipCode: '', country: ''),
-        location: const GeoPoint(0, 0), // Default location, should be updated with actual location
+        address: Address.fromMap(_normalizedAddressData()),
+        location: resolvedLocation,
         operatingHours: _formData['operatingHours'] ?? {},
         amenities: List<String>.from(_formData['amenities'] ?? []),
         images: [], // Default empty images list
@@ -159,8 +279,6 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
         stripeAccountId: null,
         rating: null,
       );
-      
-      // TODO: Update with actual location from address if available
 
       // Save tennis center
       final savedCenterId =
@@ -168,7 +286,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
       if (savedCenterId == null) {
         throw Exception('Failed to save tennis center');
       }
-      
+
       // Save courts
       if (_formData['courts'] != null) {
         for (var courtData in _formData['courts']) {
@@ -183,7 +301,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
           }
         }
       }
-      
+
       // Update user's onboarding status
       try {
         await authProvider.updateUserOnboardingStatus(completed: true);
@@ -192,14 +310,15 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
         debugPrint('Error updating user onboarding status: $e');
         // Continue even if updating onboarding status fails
       }
-      
+
       // Show completion screen
       if (mounted) {
         await Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => OnboardingCompleteScreen(
               onContinue: () {
-                Navigator.of(context).pushReplacementNamed('/tennis-center-dashboard');
+                Navigator.of(context)
+                    .pushReplacementNamed('/tennis-center-dashboard');
               },
             ),
           ),
@@ -247,7 +366,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return PopScope<void>(
       canPop: _isFirstStep,
       onPopInvokedWithResult: (didPop, result) {
@@ -286,16 +405,17 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
               minHeight: 2,
               valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
             ),
-            
+
             // Step indicator
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(_steps.length, (index) {
                   final isActive = index == _currentStep;
                   final isCompleted = index < _currentStep;
-                  
+
                   return GestureDetector(
                     onTap: () {
                       if (index < _currentStep) {
@@ -333,7 +453,8 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
                                 style: TextStyle(
                                   color: isActive
                                       ? Colors.white
-                                      : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
+                                      : theme.textTheme.bodyLarge?.color
+                                          ?.withValues(alpha: 0.7),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -343,7 +464,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
                 }),
               ),
             ),
-            
+
             // Content
             Expanded(
               child: PageView.builder(
@@ -353,7 +474,7 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
                 itemBuilder: (context, index) => _steps[index],
               ),
             ),
-            
+
             // Navigation buttons
             Container(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -376,7 +497,8 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
                       TextButton(
                         onPressed: _previousStep,
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 16),
                         ),
                         child: const Text('Back'),
                       ),
@@ -387,7 +509,8 @@ class _TennisCenterOnboardingScreenState extends State<TennisCenterOnboardingScr
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 24),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),

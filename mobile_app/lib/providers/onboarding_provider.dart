@@ -26,15 +26,16 @@ class OnboardingProvider extends ChangeNotifier {
 
   // Courts list helpers
   void addCourt([Map<String, dynamic>? court]) {
-    final newCourt = court ?? {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'name': 'Court ${_draft.courts.length + 1}',
-      'surface': 'Hard',
-      'indoor': false,
-      'lighting': 'None',
-      'pricePerHour': 25.0,
-      'isActive': true,
-    };
+    final newCourt = court ??
+        {
+          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+          'name': 'Court ${_draft.courts.length + 1}',
+          'surface': 'Hard',
+          'indoor': false,
+          'lighting': 'None',
+          'pricePerHour': 25.0,
+          'isActive': true,
+        };
     _draft.courts.add(newCourt);
     notifyListeners();
   }
@@ -58,6 +59,16 @@ class OnboardingProvider extends ChangeNotifier {
     for (int i = 0; i < _draft.courts.length; i++) {
       _draft.courts[i]['name'] = 'Court ${i + 1}';
     }
+    notifyListeners();
+  }
+
+  void updateOperatingHours(Map<String, dynamic> hours) {
+    _draft.operatingHours = hours.map(
+      (key, value) => MapEntry(
+        key,
+        Map<String, String>.from(value as Map),
+      ),
+    );
     notifyListeners();
   }
 

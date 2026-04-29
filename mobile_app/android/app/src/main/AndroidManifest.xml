@@ -6,8 +6,6 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <!-- Coarse Location Permissions -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <!-- Background Location Permissions (if needed) -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     
     <queries>
         <!-- For Google Maps -->

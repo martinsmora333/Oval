@@ -21,7 +21,7 @@ class PermissionUtils {
 
     // Check location permission status
     LocationPermission permission = await Geolocator.checkPermission();
-    
+
     if (permission == LocationPermission.denied && requestIfDenied) {
       permission = await Geolocator.requestPermission();
     }
@@ -34,8 +34,8 @@ class PermissionUtils {
       return false;
     }
 
-    return permission == LocationPermission.always || 
-           permission == LocationPermission.whileInUse;
+    return permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
   }
 
   /// Checks if the app has location permission.
@@ -83,7 +83,7 @@ class PermissionUtils {
 
   /// Opens the app settings page.
   static Future<bool> openAppSettings() async {
-    return await openAppSettings();
+    return Geolocator.openAppSettings();
   }
 
   /// Checks if a permission is granted.
@@ -125,6 +125,6 @@ class PermissionUtils {
   ///
   /// Returns `true` if the settings page was opened, `false` otherwise.
   static Future<bool> openApplicationSettings() async {
-    return await openAppSettings();
+    return openAppSettings();
   }
 }
