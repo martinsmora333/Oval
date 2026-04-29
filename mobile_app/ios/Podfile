@@ -1,0 +1,114 @@
+# Define a global platform for your project
+platform :ios, '18.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+# Use CocoaPods CDN instead of Git
+source 'https://cdn.cocoapods.org/'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+# Load environment variables from .env file
+def load_env_vars
+  env_vars = {}
+  env_file = File.expand_path('../.env', __dir__)
+  if File.exist?(env_file)
+    File.foreach(env_file) do |line|
+      key, value = line.strip.split('=', 2)
+      env_vars[key] = value.gsub(/^"|"$/, '') if key && value
+    end
+  end
+  env_vars
+end
+
+# Get Google Maps API key from environment
+env_vars = load_env_vars
+google_maps_api_key = env_vars['GOOGLE_MAPS_API_KEY']
+
+# Create a file with the Google Maps API key for build settings
+file_path = File.join(File.dirname(File.realpath(__FILE__)), 'Runner/GoogleMaps-Info.plist')
+File.open(file_path, 'w') do |file|
+  file.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+  file.write("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n")
+  file.write("<plist version=\"1.0\">\n")
+  file.write("<dict>\n")
+  file.write("    <key>GMSApiKey</key>\n")
+  file.write("    <string>#{google_maps_api_key}</string>\n")
+  file.write("</dict>\n")
+  file.write("</plist>\n")
+end
+
+target 'Runner' do
+  use_frameworks! :linkage => :static
+  use_modular_headers!
+  
+  # Install Flutter pods
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # Google Maps SDK for iOS
+  pod 'GoogleMaps'
+  pod 'GooglePlaces'
+  
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+# Add build settings for Google Maps
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    
+    # Set deployment target for all pods
+    target.build_configurations.each do |config|
+      # Force pods to use our minimum iOS version
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
+      
+      # Ensure pods support arm64 architecture for iOS devices
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64 i386'
+      
+      # Strip debug symbols in release mode to reduce app size
+      if config.name == 'Release'
+        config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Owholemodule'
+        config.build_settings['STRIP_STYLE'] = 'non-global'
+      end
+      
+      # Fix for iOS plugin compatibility
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ["$(inherited)", "PERMISSION_EVENTS=1"]
+      
+      # Support library distribution for better linking
+      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+    end
+  end
+  
+  # This is necessary to ensure XCFrameworks work correctly
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
+      end
+    end
+  end
+end

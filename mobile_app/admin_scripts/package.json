@@ -1,0 +1,15 @@
+{
+  "name": "admin_scripts",
+  "version": "1.0.0",
+  "description": "This directory contains administrative scripts for managing the Oval Tennis app's Firebase data.",
+  "main": "update_users_onboarding_status.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}

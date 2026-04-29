@@ -1,0 +1,65 @@
+[
+  {
+    "featureType": "poi.sports_complex",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#c5e8b7"
+      },
+      {
+        "visibility": "on"
+      },
+      {
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "featureType": "poi.sports_complex",
+    "elementType": "labels.text",
+    "stylers": [
+      {
+        "visibility": "on"
+      },
+      {
+        "weight": 3
+      }
+    ]
+  },
+  {
+    "featureType": "poi.sports_complex",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#1A5D1A"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.sports_complex",
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "on"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#e5f5e0"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#ffffff"
+      }
+    ]
+  }
+]
