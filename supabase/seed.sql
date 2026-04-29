@@ -1,0 +1,2 @@
+-- Seed data is intentionally empty for now.
+-- Data migration from Firebase will be handled by dedicated scripts once the schema is live.

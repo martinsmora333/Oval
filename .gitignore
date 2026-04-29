@@ -1,0 +1,43 @@
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Dart / Flutter generated files
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.metadata
+build/
+coverage/
+*.log
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+admin_scripts/serviceAccountKey.json
+
+# iOS generated files
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/Generated.xcconfig
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner/GoogleMaps-Info.plist
+
+# Android generated files
+android/.gradle/
+android/.kotlin/
+android/app/build/
+android/local.properties
+
+# Desktop generated files
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/

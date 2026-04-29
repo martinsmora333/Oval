@@ -1,0 +1,235 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+// Load environment variables from .env file
+def env = new HashMap<String, String>()
+def envFile = rootProject.file('../.env')
+if (envFile.exists()) {
+    envFile.eachLine { rawLine ->
+        def line = rawLine.trim()
+        if (!line || line.startsWith('#') || !line.contains('=')) {
+            return
+        }
+
+        def separatorIndex = line.indexOf('=')
+        def key = line.substring(0, separatorIndex).trim()
+        def value = line.substring(separatorIndex + 1).trim()
+
+        if (key) {
+            env[key] = value.replaceAll('^"|"$', '')
+        }
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+android {
+    namespace "com.oval.mobileapp"
+    compileSdk 35 // Android 15
+    ndkVersion flutter.ndkVersion
+
+    // Enable view binding if needed
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    // Enable data binding if needed
+    // dataBinding {
+    //     enabled = true
+    // }
+
+
+    // Enable multidex if needed
+    // multiDexEnabled true
+
+    // Enable Java 8 features
+    compileOptions {
+        // Flag to enable support for the new language APIs
+        coreLibraryDesugaringEnabled true
+        
+        // Keep plugin/toolchain compatibility aligned across the Android build.
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    // Enable Kotlin options
+    kotlinOptions {
+        jvmTarget = '1.8' // Match with Java version above
+        
+        // Enable coroutines support
+        freeCompilerArgs += [
+            "-Xjvm-default=all",
+            "-opt-in=kotlin.RequiresOptIn"
+        ]
+    }
+
+    // Enable lint options
+    lintOptions {
+        disable 'InvalidPackage'
+        disable 'GradleDependency'
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    // Enable test options
+    testOptions {
+        unitTests.returnDefaultValues = true
+        unitTests.includeAndroidResources = true
+    }
+
+    // Enable packaging options
+    packagingOptions {
+        // Exclude files that cause conflicts
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/ASL2.0'
+        exclude 'META-INF/*.kotlin_module'
+        
+        // For Google Play Services
+        exclude 'META-INF/com.google.android.maps/maps_release.kotlin_module'
+        exclude 'META-INF/com.google.android.gms/play-services-basement.properties'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        // Application ID for Android builds
+        applicationId "com.oval.mobileapp"
+        
+        // Minimum SDK version - Android 6.0 (API 23) for Google Maps
+        minSdkVersion 23
+        
+        // Target SDK version - Android 15
+        targetSdkVersion 35
+        
+        // Version code - auto-incremented for each release
+        versionCode flutterVersionCode.toInteger()
+        
+        // Version name - follows semantic versioning
+        versionName flutterVersionName
+        
+        // Test runner
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Enable multiDex for apps with many dependencies
+        // multiDexEnabled true
+        
+        // Vector drawable support
+        vectorDrawables.useSupportLibrary = true
+        
+        // Google Maps API Key from environment variables
+        manifestPlaceholders = [
+            MAPS_API_KEY: env.get('GOOGLE_MAPS_API_KEY', ''),
+            mapsApiKey: env.get('GOOGLE_MAPS_API_KEY', '')
+        ]
+        
+        // Add API key to BuildConfig
+        buildConfigField "String", "MAPS_API_KEY", "\"${env.get('GOOGLE_MAPS_API_KEY', '')}\""
+        
+        // Enable or disable certain features based on build type
+        buildConfigField "boolean", "ENABLE_ANALYTICS", "false"
+        buildConfigField "boolean", "ENABLE_CRASHLYTICS", "false"
+        
+        // Add support for R8 full mode
+        multiDexEnabled true
+        
+        // Enable support for vector drawables
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    buildTypes {
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    // Core Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.12.0'
+    
+    // Google Play Services
+    implementation "com.google.android.gms:play-services-maps:${rootProject.ext.play_services_maps}"
+    implementation "com.google.android.gms:play-services-location:${rootProject.ext.play_services_location}"
+    implementation "com.google.android.gms:play-services-auth:${rootProject.ext.play_services_auth}"
+    
+    // Google Maps Utils for clustering
+    implementation 'com.google.maps.android:android-maps-utils:3.8.0'
+    
+    // Google Places API
+    implementation 'com.google.android.libraries.places:places:3.3.0'
+    
+    // AndroidX Libraries
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    
+    // Lifecycle components
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
+    
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
+    
+    // Image loading
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+    
+    // Desugaring for Java 8+ APIs on older Android versions
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    
+    // Testing
+    testImplementation "junit:junit:${rootProject.ext.junit}"
+    androidTestImplementation "androidx.test.ext:junit:${rootProject.ext.ext_junit}"
+    androidTestImplementation "androidx.test.espresso:espresso-core:${rootProject.ext.espresso_core}"
+    
+    // For local unit tests
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.1.0'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+    
+    // For instrumented tests
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    
+    // For UI testing
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+}

@@ -1,0 +1,2 @@
+/Users/martin/CascadeProjects/tennis_match_platform/mobile_app/android/app/.cxx/Debug/p03g6o1z/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/martin/CascadeProjects/tennis_match_platform/mobile_app/android/app/.cxx/Debug/p03g6o1z/armeabi-v7a/CMakeFiles/rebuild_cache.dir
