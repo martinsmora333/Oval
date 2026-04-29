@@ -9,10 +9,12 @@ import '../../utils/responsive_utils.dart';
 
 class TennisCenterManagerDashboard extends StatefulWidget {
   final Function(String)? onTennisCenterSelected;
+  final bool showScaffold;
   
   const TennisCenterManagerDashboard({
     super.key,
     this.onTennisCenterSelected,
+    this.showScaffold = true,
   });
 
   @override
@@ -73,6 +75,47 @@ class _TennisCenterManagerDashboardState extends State<TennisCenterManagerDashbo
     final double verticalSpacing = ResponsiveUtils.blockSizeVertical * 2;
     final double horizontalSpacing = ResponsiveUtils.blockSizeHorizontal * 3;
     
+    final content = _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _loadManagedCenters,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.all(horizontalSpacing),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Welcome message
+                  Text(
+                    'Welcome, ${userModel?.displayName ?? 'Manager'}',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: verticalSpacing * 0.5),
+                  
+                  Text(
+                    'Manage your tennis centers and court bookings',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  
+                  SizedBox(height: verticalSpacing),
+                  
+                  // Tennis centers list
+                  _managedCenters.isEmpty
+                      ? _buildEmptyState(verticalSpacing)
+                      : _buildTennisCentersList(verticalSpacing, horizontalSpacing),
+                ],
+              ),
+            ),
+          );
+
+    if (!widget.showScaffold) {
+      return content;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tennis Centers'),
@@ -83,42 +126,7 @@ class _TennisCenterManagerDashboardState extends State<TennisCenterManagerDashbo
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadManagedCenters,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.all(horizontalSpacing),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome message
-                    Text(
-                      'Welcome, ${userModel?.displayName ?? 'Manager'}',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: verticalSpacing * 0.5),
-                    
-                    Text(
-                      'Manage your tennis centers and court bookings',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    
-                    SizedBox(height: verticalSpacing),
-                    
-                    // Tennis centers list
-                    _managedCenters.isEmpty
-                        ? _buildEmptyState(verticalSpacing)
-                        : _buildTennisCentersList(verticalSpacing, horizontalSpacing),
-                  ],
-                ),
-              ),
-            ),
+      body: content,
       // Floating action button removed as per user request
     );
   }

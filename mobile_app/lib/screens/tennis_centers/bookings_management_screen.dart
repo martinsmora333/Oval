@@ -10,10 +10,12 @@ import '../../utils/responsive_utils.dart';
 
 class BookingsManagementScreen extends StatefulWidget {
   final String tennisCenterId;
+  final bool showScaffold;
 
   const BookingsManagementScreen({
     super.key,
     required this.tennisCenterId,
+    this.showScaffold = true,
   });
 
   @override
@@ -44,6 +46,18 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant BookingsManagementScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tennisCenterId != widget.tennisCenterId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadBookings();
+        }
+      });
+    }
   }
 
   Future<void> _loadBookings() async {
@@ -110,77 +124,93 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen>
     final double verticalSpacing = ResponsiveUtils.blockSizeVertical * 2;
     final double horizontalSpacing = ResponsiveUtils.blockSizeHorizontal * 3;
 
+    final tabBar = TabBar(
+      controller: _tabController,
+      tabs: const [
+        Tab(text: 'Day View'),
+        Tab(text: 'Week View'),
+      ],
+      onTap: (index) {
+        setState(() {
+          _calendarFormat =
+              index == 0 ? CalendarFormat.week : CalendarFormat.twoWeeks;
+        });
+      },
+    );
+
+    final calendarAndList = Column(
+      children: [
+        // Calendar
+        TableCalendar(
+          firstDay: DateTime.now().subtract(const Duration(days: 365)),
+          lastDay: DateTime.now().add(const Duration(days: 365)),
+          focusedDay: _focusedDay,
+          calendarFormat: _calendarFormat,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          onDaySelected: _onDaySelected,
+          onFormatChanged: (format) {
+            setState(() {
+              _calendarFormat = format;
+            });
+          },
+          onPageChanged: (focusedDay) {
+            _focusedDay = focusedDay;
+          },
+          calendarStyle: CalendarStyle(
+            selectedDecoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              shape: BoxShape.circle,
+            ),
+            todayDecoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+            ),
+          ),
+          headerStyle: HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+            titleTextStyle: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+
+        // Bookings list
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : bookings.isEmpty
+                  ? _buildEmptyState()
+                  : _buildBookingsList(
+                      bookings, verticalSpacing, horizontalSpacing),
+        ),
+      ],
+    );
+
+    if (!widget.showScaffold) {
+      return Column(
+        children: [
+          Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: tabBar,
+          ),
+          Expanded(child: calendarAndList),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Bookings - $tennisCenterName'),
         automaticallyImplyLeading: false,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Day View'),
-            Tab(text: 'Week View'),
-          ],
-          onTap: (index) {
-            setState(() {
-              _calendarFormat =
-                  index == 0 ? CalendarFormat.week : CalendarFormat.twoWeeks;
-            });
-          },
-        ),
+        bottom: tabBar,
       ),
-      body: Column(
-        children: [
-          // Calendar
-          TableCalendar(
-            firstDay: DateTime.now().subtract(const Duration(days: 365)),
-            lastDay: DateTime.now().add(const Duration(days: 365)),
-            focusedDay: _focusedDay,
-            calendarFormat: _calendarFormat,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: _onDaySelected,
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-            onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
-            },
-            calendarStyle: CalendarStyle(
-              selectedDecoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.5),
-                shape: BoxShape.circle,
-              ),
-            ),
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-
-          // Bookings list
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : bookings.isEmpty
-                    ? _buildEmptyState()
-                    : _buildBookingsList(
-                        bookings, verticalSpacing, horizontalSpacing),
-          ),
-        ],
-      ),
+      body: calendarAndList,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(

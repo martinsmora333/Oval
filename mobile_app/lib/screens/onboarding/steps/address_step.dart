@@ -335,7 +335,7 @@ class _AddressStepState extends State<AddressStep> {
     final theme = Theme.of(context);
 
     return Container(
-      height: 180,
+      constraints: const BoxConstraints(minHeight: 180),
       decoration: ShapeDecoration(
         color: theme.cardColor,
         shape: SmoothRectangleBorder(
@@ -352,6 +352,7 @@ class _AddressStepState extends State<AddressStep> {
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               _hasLocation

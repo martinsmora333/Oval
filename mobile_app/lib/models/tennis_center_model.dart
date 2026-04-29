@@ -16,14 +16,17 @@ class TennisCenterModel {
   final String? stripeAccountId;
   final DateTime createdAt;
   final double? rating;
+  final int? _reviewCount;
+  final int? _courtCount;
+  final double? _pricePerHour;
   final List<String> managerIds;
 
   String? get phone => phoneNumber;
   String get openingHours => _formatOpeningHours();
   String? get imageUrl => images.isNotEmpty ? images.first : null;
-  int get reviewCount => 0;
-  int get courtCount => 2;
-  double get pricePerHour => 25.0;
+  int get reviewCount => _reviewCount ?? 0;
+  int get courtCount => _courtCount ?? 0;
+  double get pricePerHour => _pricePerHour ?? 0;
 
   String _formatOpeningHours() {
     if (operatingHours.isEmpty) return 'Hours not available';
@@ -41,7 +44,19 @@ class TennisCenterModel {
 
     final hours = operatingHours[todayName];
     if (hours == null) return 'Hours not available';
-    return '${hours.openTime} - ${hours.closeTime}';
+    if (hours.isClosed) {
+      return 'Closed today';
+    }
+    return '${_formatTimeValue(hours.openTime)} - ${_formatTimeValue(hours.closeTime)}';
+  }
+
+  String _formatTimeValue(String value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})(?::\d{2})?$').firstMatch(value.trim());
+    if (match == null) {
+      return value;
+    }
+
+    return '${match.group(1)!.padLeft(2, '0')}:${match.group(2)!}';
   }
 
   TennisCenterModel({
@@ -59,8 +74,13 @@ class TennisCenterModel {
     this.stripeAccountId,
     required this.createdAt,
     this.rating,
+    int reviewCount = 0,
+    int courtCount = 0,
+    double pricePerHour = 0,
     this.managerIds = const [],
-  });
+  })  : _reviewCount = reviewCount,
+        _courtCount = courtCount,
+        _pricePerHour = pricePerHour;
 
   factory TennisCenterModel.fromMap(Map<String, dynamic> data, {String? id}) {
     final rawHours = data['operatingHours'] as Map<String, dynamic>? ??
@@ -105,6 +125,9 @@ class TennisCenterModel {
       stripeAccountId: data['stripeAccountId'] as String?,
       createdAt: parseDateTime(data['createdAt']),
       rating: data['rating'] == null ? null : readDouble(data['rating']),
+      reviewCount: (data['reviewCount'] as num?)?.toInt() ?? 0,
+      courtCount: (data['courtCount'] as num?)?.toInt() ?? 0,
+      pricePerHour: readDouble(data['pricePerHour']),
       managerIds: data['managerIds'] != null
           ? List<String>.from(data['managerIds'])
           : const <String>[],
@@ -132,6 +155,9 @@ class TennisCenterModel {
       'stripeAccountId': stripeAccountId,
       'createdAt': serializeDateTime(createdAt),
       'rating': rating,
+      'reviewCount': _reviewCount,
+      'courtCount': _courtCount,
+      'pricePerHour': _pricePerHour,
       'managerIds': managerIds,
     };
   }
@@ -211,5 +237,16 @@ class OperatingHours {
     };
   }
 
-  String get formattedHours => isClosed ? 'Closed' : '$open - $close';
+  String get formattedHours => isClosed
+      ? 'Closed'
+      : '${_formatTimeValue(open)} - ${_formatTimeValue(close)}';
+
+  String _formatTimeValue(String value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})(?::\d{2})?$').firstMatch(value.trim());
+    if (match == null) {
+      return value;
+    }
+
+    return '${match.group(1)!.padLeft(2, '0')}:${match.group(2)!}';
+  }
 }

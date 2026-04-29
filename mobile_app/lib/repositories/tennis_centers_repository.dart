@@ -105,11 +105,15 @@ class TennisCentersRepository extends RepositorySupport {
     final hoursByCenter = await _fetchCenterHours(<String>[id]);
     final imagesByCenter = await _fetchCenterImages(<String>[id]);
     final managersByCenter = await _fetchCenterManagers(<String>[id]);
+    final courtCountByCenter = await _fetchCourtCounts(<String>[id]);
+    final minimumRateByCenter = await _fetchMinimumCourtRates(<String>[id]);
 
     return _mapTennisCenterModel(
       Map<String, dynamic>.from(row),
       hoursRows: hoursByCenter[id] ?? const <Map<String, dynamic>>[],
       imageRows: imagesByCenter[id] ?? const <Map<String, dynamic>>[],
+      courtCount: courtCountByCenter[id] ?? 0,
+      pricePerHour: minimumRateByCenter[id] ?? 0,
       managerIds: managersByCenter[id] ?? const <String>[],
     );
   }
@@ -496,6 +500,8 @@ class TennisCentersRepository extends RepositorySupport {
     final hoursByCenter = await _fetchCenterHours(ids);
     final imagesByCenter = await _fetchCenterImages(ids);
     final managersByCenter = await _fetchCenterManagers(ids);
+    final courtCountByCenter = await _fetchCourtCounts(ids);
+    final minimumRateByCenter = await _fetchMinimumCourtRates(ids);
 
     return rows
         .map(
@@ -505,6 +511,8 @@ class TennisCentersRepository extends RepositorySupport {
                 const <Map<String, dynamic>>[],
             imageRows: imagesByCenter[row['id'] as String] ??
                 const <Map<String, dynamic>>[],
+            courtCount: courtCountByCenter[row['id'] as String] ?? 0,
+            pricePerHour: minimumRateByCenter[row['id'] as String] ?? 0,
             managerIds:
                 managersByCenter[row['id'] as String] ?? const <String>[],
           ),
@@ -613,10 +621,38 @@ class TennisCentersRepository extends RepositorySupport {
     return counts;
   }
 
+  Future<Map<String, double>> _fetchMinimumCourtRates(
+    List<String> centerIds,
+  ) async {
+    if (centerIds.isEmpty) {
+      return const <String, double>{};
+    }
+
+    final rows = await client
+        .from('courts')
+        .select('center_id,hourly_rate')
+        .inFilter('center_id', centerIds);
+
+    final minimumRates = <String, double>{};
+    for (final row in rows as List) {
+      final centerId = row['center_id'] as String;
+      final hourlyRate = readDouble(row['hourly_rate'], fallback: 0);
+
+      final currentMinimum = minimumRates[centerId];
+      if (currentMinimum == null || hourlyRate < currentMinimum) {
+        minimumRates[centerId] = hourlyRate;
+      }
+    }
+
+    return minimumRates;
+  }
+
   TennisCenterModel _mapTennisCenterModel(
     Map<String, dynamic> row, {
     required List<Map<String, dynamic>> hoursRows,
     required List<Map<String, dynamic>> imageRows,
+    required int courtCount,
+    required double pricePerHour,
     required List<String> managerIds,
   }) {
     return TennisCenterModel(
@@ -648,6 +684,9 @@ class TennisCentersRepository extends RepositorySupport {
       stripeAccountId: null,
       createdAt: parseDbDateTime(row['created_at']),
       rating: readNullableDouble(row['rating_average']),
+      reviewCount: row['rating_count'] as int? ?? 0,
+      courtCount: courtCount,
+      pricePerHour: pricePerHour,
       managerIds: managerIds,
     );
   }

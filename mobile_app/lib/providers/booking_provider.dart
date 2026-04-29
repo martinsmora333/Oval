@@ -180,9 +180,11 @@ class BookingProvider with ChangeNotifier {
           await _tennisCentersRepository.getTennisCenter(tennisCenterId);
       _tennisCenterName = tennisCenter?.name ?? 'Tennis Center';
 
-      _tennisCenterBookings = await _bookingsRepository.getTennisCenterBookings(
-        tennisCenterId,
-        date: date,
+      _tennisCenterBookings = List<BookingModel>.from(
+        await _bookingsRepository.getTennisCenterBookings(
+          tennisCenterId,
+          date: date,
+        ),
       );
       _tennisCenterBookings.sort((a, b) => a.startsAt.compareTo(b.startsAt));
     } catch (e) {

@@ -16,6 +16,7 @@ class TennisCenterManagerMainScreen extends StatefulWidget {
 class _TennisCenterManagerMainScreenState extends State<TennisCenterManagerMainScreen> {
   int _selectedIndex = 0;
   String? _selectedTennisCenterId;
+  final Set<int> _visitedTabs = <int>{0};
   
   @override
   void initState() {
@@ -35,9 +36,97 @@ class _TennisCenterManagerMainScreenState extends State<TennisCenterManagerMainS
     }
   }
   
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+
+    switch (_selectedIndex) {
+      case 1:
+        return AppBar(title: const Text('Courts Management'));
+      case 2:
+        return AppBar(title: const Text('Bookings'));
+      case 0:
+      default:
+        return AppBar(
+          title: const Text('Tennis Centers'),
+          actions: [
+            IconButton(
+              icon: const Icon(CupertinoIcons.square_arrow_right),
+              onPressed: () => authProvider.signOut(),
+            ),
+          ],
+        );
+    }
+  }
+
+  List<Widget> _buildTabs(String selectedTennisCenterId) {
+    return [
+      _visitedTabs.contains(0)
+          ? TennisCenterManagerDashboard(
+              key: const PageStorageKey('dashboard'),
+              showScaffold: false,
+              onTennisCenterSelected: (tennisCenterId) {
+                setState(() {
+                  _selectedTennisCenterId = tennisCenterId;
+                });
+              },
+            )
+          : const SizedBox.shrink(),
+      _visitedTabs.contains(1)
+          ? CourtsManagementScreen(
+              key: const PageStorageKey('courts'),
+              showScaffold: false,
+              tennisCenterId: selectedTennisCenterId,
+            )
+          : const SizedBox.shrink(),
+      _visitedTabs.contains(2)
+          ? BookingsManagementScreen(
+              key: const PageStorageKey('bookings'),
+              showScaffold: false,
+              tennisCenterId: selectedTennisCenterId,
+            )
+          : const SizedBox.shrink(),
+    ];
+  }
+  
+  Widget _buildBody() {
+    // Get the list of managed tennis centers
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final managedTennisCenters = authProvider.userModel?.managedTennisCenters ?? [];
+    
+    // Show a placeholder if no tennis centers are available
+    if (managedTennisCenters.isEmpty) {
+      return const Center(
+        child: Text('No tennis centers to manage'),
+      );
+    }
+    
+    final selectedTennisCenterId =
+        managedTennisCenters.contains(_selectedTennisCenterId)
+            ? _selectedTennisCenterId!
+            : managedTennisCenters.first;
+    _selectedTennisCenterId = selectedTennisCenterId;
+
+    return IndexedStack(
+      index: _selectedIndex,
+      children: _buildTabs(selectedTennisCenterId),
+    );
+  }
+  
+  void _onItemTapped(int index) {
+    if (_selectedIndex == index) {
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+      _visitedTabs.add(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: _buildAppBar(context),
       body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -61,59 +150,5 @@ class _TennisCenterManagerMainScreenState extends State<TennisCenterManagerMainS
         ],
       ),
     );
-  }
-  
-  Widget _buildBody() {
-    // Get the list of managed tennis centers
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final managedTennisCenters = authProvider.userModel?.managedTennisCenters ?? [];
-    
-    // Show a placeholder if no tennis centers are available
-    if (managedTennisCenters.isEmpty) {
-      return const Center(
-        child: Text('No tennis centers to manage'),
-      );
-    }
-    
-    // Make sure we have a selected tennis center ID
-    _selectedTennisCenterId ??= managedTennisCenters.first;
-    
-    // Return the appropriate screen based on the selected index
-    switch (_selectedIndex) {
-      case 0:
-        return TennisCenterManagerDashboard(
-          key: const PageStorageKey('dashboard'),
-          onTennisCenterSelected: (tennisCenterId) {
-            setState(() {
-              _selectedTennisCenterId = tennisCenterId;
-            });
-          },
-        );
-      case 1:
-        return CourtsManagementScreen(
-          key: const PageStorageKey('courts'),
-          tennisCenterId: _selectedTennisCenterId!,
-        );
-      case 2:
-        return BookingsManagementScreen(
-          key: const PageStorageKey('bookings'),
-          tennisCenterId: _selectedTennisCenterId!,
-        );
-      default:
-        return TennisCenterManagerDashboard(
-          key: const PageStorageKey('dashboard'),
-          onTennisCenterSelected: (tennisCenterId) {
-            setState(() {
-              _selectedTennisCenterId = tennisCenterId;
-            });
-          },
-        );
-    }
-  }
-  
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 }

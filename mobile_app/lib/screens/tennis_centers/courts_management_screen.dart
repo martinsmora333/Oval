@@ -11,10 +11,12 @@ import 'edit_court_screen.dart';
 
 class CourtsManagementScreen extends StatefulWidget {
   final String tennisCenterId;
+  final bool showScaffold;
   
   const CourtsManagementScreen({
     super.key,
     required this.tennisCenterId,
+    this.showScaffold = true,
   });
 
   @override
@@ -37,7 +39,23 @@ class _CourtsManagementScreenState extends State<CourtsManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCourts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadCourts();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant CourtsManagementScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tennisCenterId != widget.tennisCenterId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadCourts();
+        }
+      });
+    }
   }
   
   Future<void> _loadCourts() async {
@@ -75,19 +93,25 @@ class _CourtsManagementScreenState extends State<CourtsManagementScreen> {
     final double verticalSpacing = ResponsiveUtils.blockSizeVertical * 2;
     final double horizontalSpacing = ResponsiveUtils.blockSizeHorizontal * 3;
     
+    final content = _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _loadCourts,
+            child: _courts.isEmpty
+                ? _buildEmptyState(verticalSpacing)
+                : _buildCourtsList(verticalSpacing, horizontalSpacing),
+          );
+
+    if (!widget.showScaffold) {
+      return content;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Courts Management'),
         automaticallyImplyLeading: false,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadCourts,
-              child: _courts.isEmpty
-                  ? _buildEmptyState(verticalSpacing)
-                  : _buildCourtsList(verticalSpacing, horizontalSpacing),
-            ),
+      body: content,
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
