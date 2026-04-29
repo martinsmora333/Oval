@@ -1,7 +1,67 @@
+import 'package:intl/intl.dart';
+
 import 'model_serialization.dart';
 
-enum BookingStatus { pending, confirmed, cancelled }
-enum PaymentStatus { pending, partial, complete, refunded }
+enum BookingStatus {
+  draft('draft', 'Draft'),
+  pending('pending', 'Pending'),
+  confirmed('confirmed', 'Confirmed'),
+  cancelled('cancelled', 'Cancelled'),
+  completed('completed', 'Completed'),
+  noShow('no_show', 'No Show');
+
+  const BookingStatus(this.dbValue, this.label);
+
+  final String dbValue;
+  final String label;
+
+  static BookingStatus fromDb(String? value) {
+    switch (value) {
+      case 'draft':
+        return BookingStatus.draft;
+      case 'confirmed':
+        return BookingStatus.confirmed;
+      case 'cancelled':
+        return BookingStatus.cancelled;
+      case 'completed':
+        return BookingStatus.completed;
+      case 'no_show':
+        return BookingStatus.noShow;
+      case 'pending':
+      default:
+        return BookingStatus.pending;
+    }
+  }
+}
+
+enum PaymentStatus {
+  pending('pending', 'Payment Pending'),
+  partial('partial', 'Partially Paid'),
+  complete('complete', 'Paid'),
+  refunded('refunded', 'Refunded'),
+  failed('failed', 'Payment Failed');
+
+  const PaymentStatus(this.dbValue, this.label);
+
+  final String dbValue;
+  final String label;
+
+  static PaymentStatus fromDb(String? value) {
+    switch (value) {
+      case 'partial':
+        return PaymentStatus.partial;
+      case 'complete':
+        return PaymentStatus.complete;
+      case 'refunded':
+        return PaymentStatus.refunded;
+      case 'failed':
+        return PaymentStatus.failed;
+      case 'pending':
+      default:
+        return PaymentStatus.pending;
+    }
+  }
+}
 
 class BookingModel {
   final String id;
@@ -9,9 +69,8 @@ class BookingModel {
   final String? courtName;
   final String tennisCenter;
   final String? tennisCenterName;
-  final String date;
-  final String startTime;
-  final String endTime;
+  final DateTime startsAt;
+  final DateTime endsAt;
   final String creatorId;
   final String? creatorName;
   final String? inviteeId;
@@ -32,9 +91,8 @@ class BookingModel {
     this.courtName,
     required this.tennisCenter,
     this.tennisCenterName,
-    required this.date,
-    required this.startTime,
-    required this.endTime,
+    required this.startsAt,
+    required this.endsAt,
     required this.creatorId,
     this.creatorName,
     this.inviteeId,
@@ -50,33 +108,50 @@ class BookingModel {
     this.confirmedAt,
   });
 
+  String get date => DateFormat('yyyy-MM-dd').format(startsAt);
+  String get startTime => DateFormat('HH:mm').format(startsAt);
+  String get endTime => DateFormat('HH:mm').format(endsAt);
+
   factory BookingModel.fromMap(Map<String, dynamic> data, {String? id}) {
+    final startsAt = _parseStartsAt(data);
+    final endsAt = _parseEndsAt(data, startsAt);
+
     return BookingModel(
       id: id ?? data['id'] as String? ?? '',
-      courtId: data['courtId'] as String? ?? '',
-      courtName: data['courtName'] as String?,
-      tennisCenter: data['tennisCenter'] as String? ?? '',
-      tennisCenterName: data['tennisCenterName'] as String?,
-      date: data['date'] as String? ?? '',
-      startTime: data['startTime'] as String? ?? '',
-      endTime: data['endTime'] as String? ?? '',
-      creatorId: data['creatorId'] as String? ?? '',
-      creatorName: data['creatorName'] as String?,
-      inviteeId: data['inviteeId'] as String?,
-      inviteeName: data['inviteeName'] as String?,
-      status: _getBookingStatusFromString(data['status'] ?? 'pending'),
-      paymentStatus: _getPaymentStatusFromString(
-        data['paymentStatus'] ?? 'pending',
+      courtId: data['courtId'] as String? ?? data['court_id'] as String? ?? '',
+      courtName: data['courtName'] as String? ?? data['court_name'] as String?,
+      tennisCenter:
+          data['tennisCenter'] as String? ?? data['center_id'] as String? ?? '',
+      tennisCenterName: data['tennisCenterName'] as String? ??
+          data['tennis_center_name'] as String?,
+      startsAt: startsAt,
+      endsAt: endsAt,
+      creatorId:
+          data['creatorId'] as String? ?? data['created_by'] as String? ?? '',
+      creatorName:
+          data['creatorName'] as String? ?? data['creator_name'] as String?,
+      inviteeId:
+          data['inviteeId'] as String? ?? data['opponent_user_id'] as String?,
+      inviteeName:
+          data['inviteeName'] as String? ?? data['invitee_name'] as String?,
+      status: BookingStatus.fromDb(
+        data['status']?.toString() ?? data['bookingStatus']?.toString(),
       ),
-      creatorPaymentId: data['creatorPaymentId'] as String?,
-      inviteePaymentId: data['inviteePaymentId'] as String?,
-      totalAmount: readDouble(data['totalAmount']),
-      amountPerPlayer: readDouble(data['amountPerPlayer']),
+      paymentStatus: PaymentStatus.fromDb(
+        data['paymentStatus']?.toString() ?? data['payment_status']?.toString(),
+      ),
+      creatorPaymentId: data['creatorPaymentId'] as String? ??
+          data['creator_payment_id'] as String?,
+      inviteePaymentId: data['inviteePaymentId'] as String? ??
+          data['invitee_payment_id'] as String?,
+      totalAmount: readDouble(data['totalAmount'] ?? data['total_amount']),
+      amountPerPlayer:
+          readDouble(data['amountPerPlayer'] ?? data['amount_per_player']),
       price: data['price'] == null ? null : readDouble(data['price']),
-      createdAt: parseDateTime(data['createdAt']),
-      confirmedAt: data['confirmedAt'] == null
+      createdAt: parseDateTime(data['createdAt'] ?? data['created_at']),
+      confirmedAt: data['confirmedAt'] == null && data['confirmed_at'] == null
           ? null
-          : parseDateTime(data['confirmedAt']),
+          : parseDateTime(data['confirmedAt'] ?? data['confirmed_at']),
     );
   }
 
@@ -87,6 +162,8 @@ class BookingModel {
       'courtName': courtName,
       'tennisCenter': tennisCenter,
       'tennisCenterName': tennisCenterName,
+      'startsAt': serializeDateTime(startsAt),
+      'endsAt': serializeDateTime(endsAt),
       'date': date,
       'startTime': startTime,
       'endTime': endTime,
@@ -94,8 +171,8 @@ class BookingModel {
       'creatorName': creatorName,
       'inviteeId': inviteeId,
       'inviteeName': inviteeName,
-      'status': status.name,
-      'paymentStatus': paymentStatus.name,
+      'status': status.dbValue,
+      'paymentStatus': paymentStatus.dbValue,
       'creatorPaymentId': creatorPaymentId,
       'inviteePaymentId': inviteePaymentId,
       'totalAmount': totalAmount,
@@ -106,126 +183,81 @@ class BookingModel {
     };
   }
 
-  static BookingStatus _getBookingStatusFromString(dynamic status) {
-    switch (status.toString().toLowerCase()) {
-      case 'pending':
-        return BookingStatus.pending;
-      case 'confirmed':
-        return BookingStatus.confirmed;
-      case 'cancelled':
-        return BookingStatus.cancelled;
-      default:
-        return BookingStatus.pending;
+  static DateTime combineDateAndTime(DateTime date, String time) {
+    final formats = <String>['HH:mm', 'H:mm', 'h:mm a', 'hh:mm a'];
+
+    for (final pattern in formats) {
+      try {
+        final parsedTime = DateFormat(pattern).parse(time);
+        return DateTime(
+          date.year,
+          date.month,
+          date.day,
+          parsedTime.hour,
+          parsedTime.minute,
+        );
+      } catch (_) {
+        // Try the next format.
+      }
     }
+
+    throw FormatException('Unsupported time format: $time');
   }
 
-  static PaymentStatus _getPaymentStatusFromString(dynamic status) {
-    switch (status.toString().toLowerCase()) {
-      case 'pending':
-        return PaymentStatus.pending;
-      case 'partial':
-        return PaymentStatus.partial;
-      case 'complete':
-        return PaymentStatus.complete;
-      case 'refunded':
-        return PaymentStatus.refunded;
-      default:
-        return PaymentStatus.pending;
+  static DateTime _parseStartsAt(Map<String, dynamic> data) {
+    final directValue = data['startsAt'] ?? data['starts_at'];
+    if (directValue != null) {
+      return parseDateTime(directValue);
     }
+
+    final date = data['date'] as String? ?? '';
+    final time =
+        data['startTime'] as String? ?? data['start_time'] as String? ?? '';
+    if (date.isNotEmpty && time.isNotEmpty) {
+      return _combineDateStringAndTime(date, time);
+    }
+
+    return parseDateTime(data['createdAt'] ?? data['created_at']);
+  }
+
+  static DateTime _parseEndsAt(Map<String, dynamic> data, DateTime startsAt) {
+    final directValue = data['endsAt'] ?? data['ends_at'];
+    if (directValue != null) {
+      return parseDateTime(directValue);
+    }
+
+    final date = data['date'] as String? ?? '';
+    final time =
+        data['endTime'] as String? ?? data['end_time'] as String? ?? '';
+    if (date.isNotEmpty && time.isNotEmpty) {
+      return _combineDateStringAndTime(date, time);
+    }
+
+    return startsAt.add(const Duration(hours: 1));
+  }
+
+  static DateTime _combineDateStringAndTime(String date, String time) {
+    final parsedDate = DateFormat('yyyy-MM-dd').parse(date);
+    return combineDateAndTime(parsedDate, time);
   }
 
   String get formattedDateTime {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ];
-
-    final parts = date.split('-');
-    if (parts.length != 3) return '$date $startTime - $endTime';
-
-    final year = parts[0];
-    final month = int.tryParse(parts[1]) ?? 1;
-    final day = int.tryParse(parts[2]) ?? 1;
-
-    return '${months[month - 1]} $day, $year • $startTime - $endTime';
+    return '${DateFormat('MMMM d, y').format(startsAt)} • $startTime - $endTime';
   }
 
-  String get statusString {
-    switch (status) {
-      case BookingStatus.pending:
-        return 'Pending';
-      case BookingStatus.confirmed:
-        return 'Confirmed';
-      case BookingStatus.cancelled:
-        return 'Cancelled';
-    }
-  }
+  String get statusString => status.label;
 
-  String get paymentStatusString {
-    switch (paymentStatus) {
-      case PaymentStatus.pending:
-        return 'Payment Pending';
-      case PaymentStatus.partial:
-        return 'Partially Paid';
-      case PaymentStatus.complete:
-        return 'Paid';
-      case PaymentStatus.refunded:
-        return 'Refunded';
-    }
-  }
+  String get paymentStatusString => paymentStatus.label;
 
   String get formattedTotalAmount => '\$${totalAmount.toStringAsFixed(2)}';
 
   String get formattedAmountPerPlayer =>
       '\$${amountPerPlayer.toStringAsFixed(2)}';
 
-  bool isUpcoming(DateTime currentDate) {
-    final bookingDate = _parseBookingDate();
-    return bookingDate.isAfter(currentDate);
-  }
+  bool isUpcoming(DateTime currentDate) => startsAt.isAfter(currentDate);
 
   bool isInProgress(DateTime currentDate) {
-    final bookingDate = _parseBookingDate();
-    final bookingEndDate = _parseBookingEndDate();
-
-    return currentDate.isAfter(bookingDate) &&
-        currentDate.isBefore(bookingEndDate);
-  }
-
-  DateTime _parseBookingDate() {
-    final dateParts = date.split('-');
-    final timeParts = startTime.split(':');
-
-    return DateTime(
-      int.parse(dateParts[0]),
-      int.parse(dateParts[1]),
-      int.parse(dateParts[2]),
-      int.parse(timeParts[0]),
-      int.parse(timeParts[1]),
-    );
-  }
-
-  DateTime _parseBookingEndDate() {
-    final dateParts = date.split('-');
-    final timeParts = endTime.split(':');
-
-    return DateTime(
-      int.parse(dateParts[0]),
-      int.parse(dateParts[1]),
-      int.parse(dateParts[2]),
-      int.parse(timeParts[0]),
-      int.parse(timeParts[1]),
-    );
+    return currentDate.isAfter(startsAt) && currentDate.isBefore(endsAt);
   }
 
   BookingModel copyWith({
@@ -234,9 +266,8 @@ class BookingModel {
     String? courtName,
     String? tennisCenter,
     String? tennisCenterName,
-    String? date,
-    String? startTime,
-    String? endTime,
+    DateTime? startsAt,
+    DateTime? endsAt,
     String? creatorId,
     String? creatorName,
     String? inviteeId,
@@ -257,9 +288,8 @@ class BookingModel {
       courtName: courtName ?? this.courtName,
       tennisCenter: tennisCenter ?? this.tennisCenter,
       tennisCenterName: tennisCenterName ?? this.tennisCenterName,
-      date: date ?? this.date,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
+      startsAt: startsAt ?? this.startsAt,
+      endsAt: endsAt ?? this.endsAt,
       creatorId: creatorId ?? this.creatorId,
       creatorName: creatorName ?? this.creatorName,
       inviteeId: inviteeId ?? this.inviteeId,
@@ -276,7 +306,6 @@ class BookingModel {
     );
   }
 
-  String? get courtSurface => 'Clay';
-  String get surfaceType => 'Clay';
-  bool get canCancel => status == BookingStatus.confirmed;
+  bool get canCancel =>
+      status == BookingStatus.pending || status == BookingStatus.confirmed;
 }

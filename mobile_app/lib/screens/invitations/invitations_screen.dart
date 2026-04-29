@@ -753,6 +753,8 @@ class _InvitationsScreenState extends State<InvitationsScreen>
     }
 
     switch (status) {
+      case InvitationStatus.queued:
+        return Colors.blueGrey;
       case InvitationStatus.pending:
         return Colors.orange;
       case InvitationStatus.accepted:
@@ -760,6 +762,8 @@ class _InvitationsScreenState extends State<InvitationsScreen>
       case InvitationStatus.declined:
         return Colors.red;
       case InvitationStatus.expired:
+      case InvitationStatus.cancelled:
+      case InvitationStatus.skipped:
         return Colors.grey;
     }
   }

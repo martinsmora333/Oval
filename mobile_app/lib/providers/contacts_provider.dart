@@ -1,27 +1,26 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/user_model.dart';
-import '../services/data_service.dart';
+import '../repositories/profiles_repository.dart';
 
 class ContactsProvider with ChangeNotifier {
-  final DataService _dataService = DataService();
-  
+  final ProfilesRepository _profilesRepository = ProfilesRepository();
+
   List<UserModel> _contacts = [];
   bool _isLoading = false;
   String? _error;
-  
-  // Getters
+
   List<UserModel> get contacts => _contacts;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  
-  // Load user contacts
+
   Future<void> loadContacts(String userId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
-      _contacts = await _dataService.getUserContacts(userId);
+      _contacts = await _profilesRepository.getUserContacts(userId);
     } catch (e) {
       _error = 'Failed to load contacts';
       debugPrint('Error loading contacts: $e');
@@ -30,20 +29,15 @@ class ContactsProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
-  // Add a contact
+
   Future<bool> addContact(String userId, String contactId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
-      // Add contact in the backend
-      await _dataService.addUserContact(userId, contactId);
-      
-      // Refresh contacts
+      await _profilesRepository.addUserContact(userId, contactId);
       await loadContacts(userId);
-      
       return true;
     } catch (e) {
       _error = 'Failed to add contact';
@@ -54,20 +48,15 @@ class ContactsProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
-  // Remove a contact
+
   Future<bool> removeContact(String userId, String contactId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
-      // Remove contact in the backend
-      await _dataService.removeUserContact(userId, contactId);
-      
-      // Refresh contacts
+      await _profilesRepository.removeUserContact(userId, contactId);
       await loadContacts(userId);
-      
       return true;
     } catch (e) {
       _error = 'Failed to remove contact';
@@ -78,50 +67,45 @@ class ContactsProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
-  // Search for users to add as contacts
-  Future<List<UserModel>> searchUsers(String query, String currentUserId) async {
+
+  Future<List<UserModel>> searchUsers(
+      String query, String currentUserId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
-      final users = await _dataService.searchUsers(query);
-      
-      // Filter out current user and existing contacts
-      final filteredUsers = users.where((user) => 
-        user.id != currentUserId && 
-        !_contacts.any((contact) => contact.id == user.id)
-      ).toList();
-      
-      _isLoading = false;
-      notifyListeners();
-      
+      final users = await _profilesRepository.searchUsers(query);
+      final filteredUsers = users
+          .where(
+            (user) =>
+                user.id != currentUserId &&
+                !_contacts.any((contact) => contact.id == user.id),
+          )
+          .toList();
       return filteredUsers;
     } catch (e) {
       _error = 'Failed to search users';
       debugPrint('Error searching users: $e');
+      return [];
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return [];
     }
   }
-  
-  // Check if a user is in contacts
+
   bool isContact(String contactId) {
     return _contacts.any((contact) => contact.id == contactId);
   }
-  
-  // Get contact by ID
+
   UserModel? getContactById(String contactId) {
     try {
       return _contacts.firstWhere((contact) => contact.id == contactId);
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
-  
-  // Filter contacts by player level
+
   List<UserModel> filterContactsByLevel(PlayerLevel level) {
     return _contacts.where((contact) => contact.playerLevel == level).toList();
   }

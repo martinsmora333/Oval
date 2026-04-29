@@ -1,6 +1,39 @@
 import 'model_serialization.dart';
 
-enum InvitationStatus { pending, accepted, declined, expired }
+enum InvitationStatus {
+  queued('queued', 'Queued'),
+  pending('pending', 'Pending'),
+  accepted('accepted', 'Accepted'),
+  declined('declined', 'Declined'),
+  expired('expired', 'Expired'),
+  cancelled('cancelled', 'Cancelled'),
+  skipped('skipped', 'Skipped');
+
+  const InvitationStatus(this.dbValue, this.label);
+
+  final String dbValue;
+  final String label;
+
+  static InvitationStatus fromDb(String? value) {
+    switch (value) {
+      case 'queued':
+        return InvitationStatus.queued;
+      case 'accepted':
+        return InvitationStatus.accepted;
+      case 'declined':
+        return InvitationStatus.declined;
+      case 'expired':
+        return InvitationStatus.expired;
+      case 'cancelled':
+        return InvitationStatus.cancelled;
+      case 'skipped':
+        return InvitationStatus.skipped;
+      case 'pending':
+      default:
+        return InvitationStatus.pending;
+    }
+  }
+}
 
 class InvitationModel {
   final String id;
@@ -34,17 +67,24 @@ class InvitationModel {
   factory InvitationModel.fromMap(Map<String, dynamic> data, {String? id}) {
     return InvitationModel(
       id: id ?? data['id'] as String? ?? '',
-      bookingId: data['bookingId'] as String? ?? '',
-      creatorId: data['creatorId'] as String? ?? '',
-      inviteeId: data['inviteeId'] as String? ?? '',
-      inviteeName: data['inviteeName'] as String?,
-      creatorName: data['creatorName'] as String?,
-      status: _getInvitationStatusFromString(data['status'] ?? 'pending'),
-      createdAt: parseDateTime(data['createdAt']),
-      expiresAt: parseDateTime(data['expiresAt']),
-      respondedAt: data['respondedAt'] == null
+      bookingId:
+          data['bookingId'] as String? ?? data['booking_id'] as String? ?? '',
+      creatorId: data['creatorId'] as String? ??
+          data['creator_user_id'] as String? ??
+          '',
+      inviteeId: data['inviteeId'] as String? ??
+          data['invitee_user_id'] as String? ??
+          '',
+      inviteeName:
+          data['inviteeName'] as String? ?? data['invitee_name'] as String?,
+      creatorName:
+          data['creatorName'] as String? ?? data['creator_name'] as String?,
+      status: InvitationStatus.fromDb(data['status']?.toString()),
+      createdAt: parseDateTime(data['createdAt'] ?? data['created_at']),
+      expiresAt: parseDateTime(data['expiresAt'] ?? data['expires_at']),
+      respondedAt: data['respondedAt'] == null && data['responded_at'] == null
           ? null
-          : parseDateTime(data['respondedAt']),
+          : parseDateTime(data['respondedAt'] ?? data['responded_at']),
       priority: data['priority'] as int? ?? 0,
       message: data['message'] as String?,
     );
@@ -58,7 +98,7 @@ class InvitationModel {
       'inviteeId': inviteeId,
       'inviteeName': inviteeName,
       'creatorName': creatorName,
-      'status': status.name,
+      'status': status.dbValue,
       'createdAt': serializeDateTime(createdAt),
       'expiresAt': serializeDateTime(expiresAt),
       'respondedAt': serializeDateTime(respondedAt),
@@ -67,33 +107,7 @@ class InvitationModel {
     };
   }
 
-  static InvitationStatus _getInvitationStatusFromString(dynamic status) {
-    switch (status.toString().toLowerCase()) {
-      case 'pending':
-        return InvitationStatus.pending;
-      case 'accepted':
-        return InvitationStatus.accepted;
-      case 'declined':
-        return InvitationStatus.declined;
-      case 'expired':
-        return InvitationStatus.expired;
-      default:
-        return InvitationStatus.pending;
-    }
-  }
-
-  String get statusString {
-    switch (status) {
-      case InvitationStatus.pending:
-        return 'Pending';
-      case InvitationStatus.accepted:
-        return 'Accepted';
-      case InvitationStatus.declined:
-        return 'Declined';
-      case InvitationStatus.expired:
-        return 'Expired';
-    }
-  }
+  String get statusString => status.label;
 
   bool isExpired(DateTime currentTime) => currentTime.isAfter(expiresAt);
 
@@ -114,11 +128,11 @@ class InvitationModel {
 
     if (remaining.inDays > 0) {
       return '${remaining.inDays}d ${remaining.inHours % 24}h remaining';
-    } else if (remaining.inHours > 0) {
-      return '${remaining.inHours}h ${remaining.inMinutes % 60}m remaining';
-    } else {
-      return '${remaining.inMinutes}m remaining';
     }
+    if (remaining.inHours > 0) {
+      return '${remaining.inHours}h ${remaining.inMinutes % 60}m remaining';
+    }
+    return '${remaining.inMinutes}m remaining';
   }
 
   InvitationModel copyWith({
@@ -126,6 +140,8 @@ class InvitationModel {
     String? bookingId,
     String? creatorId,
     String? inviteeId,
+    String? inviteeName,
+    String? creatorName,
     InvitationStatus? status,
     DateTime? createdAt,
     DateTime? expiresAt,
@@ -138,6 +154,8 @@ class InvitationModel {
       bookingId: bookingId ?? this.bookingId,
       creatorId: creatorId ?? this.creatorId,
       inviteeId: inviteeId ?? this.inviteeId,
+      inviteeName: inviteeName ?? this.inviteeName,
+      creatorName: creatorName ?? this.creatorName,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       expiresAt: expiresAt ?? this.expiresAt,

@@ -4,10 +4,11 @@ import 'dart:math' as math;
 import '../models/tennis_center_model.dart';
 import '../models/court_model.dart';
 import '../models/tennis_center.dart';
-import '../services/data_service.dart';
+import '../repositories/tennis_centers_repository.dart';
 
 class TennisCentersProvider with ChangeNotifier {
-  final DataService _dataService = DataService();
+  final TennisCentersRepository _tennisCentersRepository =
+      TennisCentersRepository();
 
   List<TennisCenterModel> _tennisCenters = [];
   List<TennisCenter> _tennisCentersForMap = [];
@@ -41,10 +42,12 @@ class TennisCentersProvider with ChangeNotifier {
       final List<Map<String, dynamic>> centers = [];
 
       for (final id in centerIds) {
-        final centerData = await _dataService.getTennisCenterById(id);
+        final centerData =
+            await _tennisCentersRepository.getTennisCenterById(id);
         if (centerData != null) {
           // Get courts count for this center
-          final courts = await _dataService.getCourtsForTennisCenter(id);
+          final courts =
+              await _tennisCentersRepository.getCourtsForTennisCenter(id);
           centerData['courtsCount'] = courts.length;
           centers.add(centerData);
         }
@@ -65,8 +68,8 @@ class TennisCentersProvider with ChangeNotifier {
       _isLoadingCourts = true;
       notifyListeners();
 
-      final courts =
-          await _dataService.getCourtsForTennisCenter(tennisCenterId);
+      final courts = await _tennisCentersRepository
+          .getCourtsForTennisCenter(tennisCenterId);
 
       _isLoadingCourts = false;
       notifyListeners();
@@ -89,7 +92,7 @@ class TennisCentersProvider with ChangeNotifier {
 
     try {
       debugPrint('TennisCentersProvider: Starting to load tennis centers');
-      _tennisCenters = await _dataService.getTennisCenters();
+      _tennisCenters = await _tennisCentersRepository.getTennisCenters();
       debugPrint(
           'TennisCentersProvider: Loaded ${_tennisCenters.length} tennis centers');
 
@@ -117,7 +120,8 @@ class TennisCentersProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _tennisCentersForMap = await _dataService.getTennisCentersForMap();
+      _tennisCentersForMap =
+          await _tennisCentersRepository.getTennisCentersForMap();
 
       // Create markers for each tennis center
       _createMarkers();
@@ -248,7 +252,7 @@ class TennisCentersProvider with ChangeNotifier {
 
     try {
       _selectedTennisCenter =
-          await _dataService.getTennisCenter(tennisCenterId);
+          await _tennisCentersRepository.getTennisCenter(tennisCenterId);
     } catch (e) {
       _error = 'Failed to load tennis center details';
       debugPrint('Error loading tennis center details: $e');
@@ -265,7 +269,7 @@ class TennisCentersProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _courts = await _dataService.getCourts(tennisCenterId);
+      _courts = await _tennisCentersRepository.getCourts(tennisCenterId);
     } catch (e) {
       _error = 'Failed to load courts';
       debugPrint('Error loading courts: $e');
@@ -333,13 +337,14 @@ class TennisCentersProvider with ChangeNotifier {
       final ownerUserId = tennisCenter.managerIds.isNotEmpty
           ? tennisCenter.managerIds.first
           : tennisCenter.id;
-      final savedCenterId = await _dataService.createOrUpdateTennisCenter(
+      final savedCenterId =
+          await _tennisCentersRepository.createOrUpdateTennisCenter(
         tennisCenter,
         ownerUserId: ownerUserId,
       );
 
       final savedCenter =
-          await _dataService.getTennisCenter(savedCenterId);
+          await _tennisCentersRepository.getTennisCenter(savedCenterId);
       if (savedCenter == null) {
         throw Exception('Failed to reload saved tennis center');
       }
@@ -370,12 +375,12 @@ class TennisCentersProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final savedCourtId = await _dataService.addCourt(
+      final savedCourtId = await _tennisCentersRepository.addCourt(
         tennisCenterId,
         court.toMap(),
       );
       final savedCourt =
-          await _dataService.getCourt(tennisCenterId, savedCourtId);
+          await _tennisCentersRepository.getCourt(tennisCenterId, savedCourtId);
 
       // Update local state if this is the selected tennis center
       if (_selectedTennisCenter?.id == tennisCenterId && savedCourt != null) {

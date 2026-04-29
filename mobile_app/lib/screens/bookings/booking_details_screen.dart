@@ -11,7 +11,7 @@ import '../../widgets/squircle_container.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final String bookingId;
-  
+
   const BookingDetailsScreen({
     super.key,
     required this.bookingId,
@@ -25,23 +25,23 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   BookingModel? _booking;
   bool _isLoading = true;
   String? _error;
-  
+
   @override
   void initState() {
     super.initState();
     _loadBookingDetails();
   }
-  
+
   Future<void> _loadBookingDetails() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
-    
+
     try {
       final provider = Provider.of<BookingProvider>(context, listen: false);
       final booking = await provider.getBookingById(widget.bookingId);
-      
+
       if (mounted) {
         setState(() {
           _booking = booking;
@@ -57,34 +57,33 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       }
     }
   }
-  
+
   Future<void> _cancelBooking() async {
     if (_booking == null) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-      
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
+
       if (authProvider.user != null) {
         final success = await bookingProvider.cancelBooking(
-          _booking!.id, 
-          authProvider.user!.uid
-        );
-        
+            _booking!.id, authProvider.user!.uid);
+
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
-          
+
           if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Booking cancelled successfully')),
             );
-            
+
             // Refresh booking details
             _loadBookingDetails();
           } else {
@@ -100,22 +99,21 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           _isLoading = false;
           _error = 'Error cancelling booking: $e';
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       }
     }
   }
-  
+
   void _showCancelDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Booking'),
         content: const Text(
-          'Are you sure you want to cancel this booking? This action cannot be undone.'
-        ),
+            'Are you sure you want to cancel this booking? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -135,10 +133,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       ),
     );
   }
-  
+
   void _invitePlayer() {
     if (_booking == null) return;
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -153,32 +151,23 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       ),
     );
   }
-  
+
   DateTime _parseBookingDate(BookingModel booking) {
-    final dateParts = booking.date.split('-');
-    if (dateParts.length != 3) return DateTime.now();
-    
     return DateTime(
-      int.parse(dateParts[0]),
-      int.parse(dateParts[1]),
-      int.parse(dateParts[2]),
+      booking.startsAt.year,
+      booking.startsAt.month,
+      booking.startsAt.day,
     );
   }
-  
+
   DateTime _parseBookingTime(BookingModel booking, String timeString) {
-    final dateParts = booking.date.split('-');
-    if (dateParts.length != 3) return DateTime.now();
-    
-    final timeParts = timeString.split(':');
-    if (timeParts.length != 2) return DateTime.now();
-    
-    return DateTime(
-      int.parse(dateParts[0]),
-      int.parse(dateParts[1]),
-      int.parse(dateParts[2]),
-      int.parse(timeParts[0]),
-      int.parse(timeParts[1]),
-    );
+    if (timeString == booking.startTime) {
+      return booking.startsAt;
+    }
+    if (timeString == booking.endTime) {
+      return booking.endsAt;
+    }
+    return booking.startsAt;
   }
 
   @override
@@ -193,7 +182,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    
+
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(
@@ -236,7 +225,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         ),
       );
     }
-    
+
     if (_booking == null) {
       return Scaffold(
         appBar: AppBar(
@@ -249,20 +238,20 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         ),
       );
     }
-    
+
     final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
     final timeFormat = DateFormat('h:mm a');
-    
+
     final bookingDate = _parseBookingDate(_booking!);
     final startTime = _parseBookingTime(_booking!, _booking!.startTime);
     final endTime = _parseBookingTime(_booking!, _booking!.endTime);
-    
+
     final isUpcoming = _booking!.isUpcoming(DateTime.now());
     final canCancel = isUpcoming && _booking!.status == BookingStatus.confirmed;
-    final canInvite = isUpcoming && 
-                      _booking!.status == BookingStatus.confirmed && 
-                      _booking!.inviteeId == null;
-    
+    final canInvite = isUpcoming &&
+        _booking!.status == BookingStatus.confirmed &&
+        _booking!.inviteeId == null;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -301,7 +290,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                           ),
                         ),
                         SquircleContainer(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           color: _getStatusColor(_booking!.status),
                           cornerRadius: 20,
                           cornerSmoothing: 0.6,
@@ -315,9 +305,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     const Text(
                       'Payment Status',
                       style: TextStyle(
@@ -325,9 +313,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         color: Colors.grey,
                       ),
                     ),
-                    
                     const SizedBox(height: 8),
-                    
                     Row(
                       children: [
                         Icon(
@@ -349,9 +335,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Date and time section
             const Text(
               'Date & Time',
@@ -360,9 +346,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SquircleContainer(
               color: Colors.white,
               cornerRadius: 12,
@@ -391,9 +377,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     Row(
                       children: [
                         Icon(
@@ -411,9 +395,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         ),
                       ],
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     Row(
                       children: [
                         Icon(
@@ -434,9 +416,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Court details section
             const Text(
               'Court Details',
@@ -445,9 +427,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SquircleContainer(
               color: Colors.white,
               cornerRadius: 12,
@@ -466,9 +448,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
                     const SizedBox(height: 8),
-                    
                     Text(
                       _booking!.tennisCenterName ?? 'Tennis Center',
                       style: TextStyle(
@@ -476,34 +456,13 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         color: Colors.grey[700],
                       ),
                     ),
-                    
-                    if (_booking!.courtSurface != null) ...[
-                      const SizedBox(height: 16),
-                      
-                      Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.square_list,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Surface: ${_booking!.courtSurface}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Payment details section
             const Text(
               'Payment Details',
@@ -512,9 +471,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SquircleContainer(
               color: Colors.white,
               cornerRadius: 12,
@@ -542,12 +501,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         ),
                       ],
                     ),
-                    
                     if (_booking!.inviteeId != null) ...[
                       const SizedBox(height: 8),
                       const Divider(),
                       const SizedBox(height: 8),
-                      
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -565,9 +522,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         ],
                       ),
                     ],
-                    
                     const SizedBox(height: 16),
-                    
                     if (_booking!.paymentStatus != PaymentStatus.complete) ...[
                       SquircleButton(
                         label: 'Make Payment',
@@ -582,9 +537,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Players section
             const Text(
               'Players',
@@ -593,9 +548,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SquircleContainer(
               color: Colors.white,
               cornerRadius: 12,
@@ -610,7 +565,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           radius: 20,
                           child: const Icon(
                             CupertinoIcons.person,
@@ -641,12 +597,11 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         ),
                       ],
                     ),
-                    
-                    if (_booking!.inviteeId != null && _booking!.inviteeName != null) ...[
+                    if (_booking!.inviteeId != null &&
+                        _booking!.inviteeName != null) ...[
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 16),
-                      
                       Row(
                         children: [
                           CircleAvatar(
@@ -685,7 +640,6 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 16),
-                      
                       OutlinedButton(
                         onPressed: _invitePlayer,
                         style: OutlinedButton.styleFrom(
@@ -721,9 +675,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Cancel booking button
             if (canCancel)
               SizedBox(
@@ -747,25 +701,30 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   ),
                 ),
               ),
-            
+
             const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
-  
+
   Color _getStatusColor(BookingStatus status) {
     switch (status) {
+      case BookingStatus.draft:
       case BookingStatus.pending:
         return Colors.orange;
       case BookingStatus.confirmed:
         return Colors.green;
+      case BookingStatus.completed:
+        return Colors.blue;
+      case BookingStatus.noShow:
+        return Colors.deepOrange;
       case BookingStatus.cancelled:
         return Colors.red;
     }
   }
-  
+
   Color _getPaymentColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.pending:
@@ -776,9 +735,11 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         return Colors.green;
       case PaymentStatus.refunded:
         return Colors.purple;
+      case PaymentStatus.failed:
+        return Colors.red;
     }
   }
-  
+
   IconData _getPaymentIcon(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.pending:
@@ -789,9 +750,11 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         return CupertinoIcons.checkmark_circle;
       case PaymentStatus.refunded:
         return CupertinoIcons.arrow_counterclockwise_circle;
+      case PaymentStatus.failed:
+        return CupertinoIcons.xmark_circle;
     }
   }
-  
+
   String _getDurationInHours(DateTime start, DateTime end) {
     final duration = end.difference(start);
     final hours = duration.inMinutes / 60;

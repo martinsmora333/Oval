@@ -13,7 +13,7 @@ import '../../widgets/squircle_container.dart';
 class CourtBookingScreen extends StatefulWidget {
   final CourtModel court;
   final String tennisCenterId;
-  
+
   const CourtBookingScreen({
     super.key,
     required this.court,
@@ -28,7 +28,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
   DateTime _selectedDate = DateTime.now();
   AvailabilityModel? _selectedTimeSlot;
   bool _isInvitingPlayer = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -37,7 +37,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
       _loadAvailability();
     });
   }
-  
+
   void _loadAvailability() {
     final provider = Provider.of<BookingProvider>(context, listen: false);
     provider.loadCourtAvailability(
@@ -46,7 +46,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
       _selectedDate,
     );
   }
-  
+
   void _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -64,7 +64,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
         );
       },
     );
-    
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -73,7 +73,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
       _loadAvailability();
     }
   }
-  
+
   void _bookCourt() async {
     if (_selectedTimeSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,21 +81,22 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
       );
       return;
     }
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-    
+    final bookingProvider =
+        Provider.of<BookingProvider>(context, listen: false);
+
     if (authProvider.user == null || authProvider.userModel == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to book a court')),
       );
       return;
     }
-    
+
     setState(() {
       _isInvitingPlayer = true;
     });
-    
+
     try {
       // Create a booking
       final booking = BookingModel(
@@ -104,9 +105,14 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
         tennisCenter: widget.tennisCenterId,
         creatorId: authProvider.user!.uid,
         creatorName: authProvider.userModel!.displayName,
-        date: DateFormat('yyyy-MM-dd').format(_selectedDate),
-        startTime: _selectedTimeSlot!.startTime,
-        endTime: _selectedTimeSlot!.endTime,
+        startsAt: BookingModel.combineDateAndTime(
+          _selectedDate,
+          _selectedTimeSlot!.startTime,
+        ),
+        endsAt: BookingModel.combineDateAndTime(
+          _selectedDate,
+          _selectedTimeSlot!.endTime,
+        ),
         price: widget.court.pricePerHour,
         status: BookingStatus.confirmed,
         paymentStatus: PaymentStatus.pending,
@@ -114,16 +120,18 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
         amountPerPlayer: widget.court.pricePerHour / 2,
         createdAt: DateTime.now(),
       );
-      
+
       await bookingProvider.createBooking(booking);
-      
+
       if (mounted) {
         // Navigate to invitation screen or back to previous screen
         if (_isInvitingPlayer) {
           // For demo purposes, we'll just show a success message
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Court booked successfully. You can invite players from the bookings screen.')),
+            const SnackBar(
+                content: Text(
+                    'Court booked successfully. You can invite players from the bookings screen.')),
           );
         } else {
           Navigator.pop(context);
@@ -185,7 +193,8 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: _getSurfaceColor(widget.court.surfaceType),
                             borderRadius: BorderRadius.circular(20),
@@ -214,7 +223,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
               ),
             ),
           ),
-          
+
           // Date selector
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -242,9 +251,9 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Time slots
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -257,9 +266,9 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Time slots grid
           Expanded(
             child: Consumer<BookingProvider>(
@@ -267,7 +276,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                 if (provider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+
                 if (provider.availableTimeSlots.isEmpty) {
                   return Center(
                     child: Column(
@@ -295,7 +304,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                     ),
                   );
                 }
-                
+
                 return GridView.builder(
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -308,7 +317,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                   itemBuilder: (context, index) {
                     final timeSlot = provider.availableTimeSlots[index];
                     final isSelected = _selectedTimeSlot == timeSlot;
-                    
+
                     return InkWell(
                       onTap: () {
                         setState(() {
@@ -343,7 +352,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
               },
             ),
           ),
-          
+
           // Booking options
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -367,9 +376,9 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Book button
                 SizedBox(
                   width: double.infinity,
@@ -400,7 +409,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
       ),
     );
   }
-  
+
   Color _getSurfaceColor(String surfaceType) {
     switch (surfaceType.toLowerCase()) {
       case 'clay':
