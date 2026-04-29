@@ -12,7 +12,9 @@ import '../../widgets/squircle_button.dart';
 import '../../widgets/squircle_container.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.showScaffold = true});
+
+  final bool showScaffold;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -26,24 +28,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadUserData();
   }
-  
+
   void _loadUserData() {
     // Use a future delayed to avoid build-time setState issues
     Future.delayed(Duration.zero, () {
       if (!mounted) return;
-      
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.user;
       final userModel = authProvider.userModel;
-      
+
       // Force refresh user data if needed
       if (user != null && userModel == null) {
         authProvider.refreshUserData();
       }
-      
+
       if (user != null) {
         // Load bookings
-        final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+        final bookingProvider =
+            Provider.of<BookingProvider>(context, listen: false);
         if (bookingProvider.userBookings.isEmpty) {
           bookingProvider.loadUserBookings(user.uid);
         }
@@ -53,16 +56,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _refreshData() async {
     if (_isRefreshing) return;
-    
+
     setState(() {
       _isRefreshing = true;
     });
-    
+
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
       await authProvider.refreshUserData();
-      
+
       if (authProvider.user != null) {
         await bookingProvider.refreshBookings(authProvider.user!.uid);
       }
@@ -80,107 +84,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
     final userModel = authProvider.userModel;
-    
-    // Login screen if not authenticated
-    if (user == null) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text(
-            'Profile',
-            style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'TexGyreAdventor'),
-          ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(CupertinoIcons.person_circle_fill, size: 80, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text(
-                'Please sign in to view your profile',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontFamily: 'TexGyreAdventor',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 32),
-              SquircleButton(
-                label: 'Sign In',
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  );
-                },
-                width: double.infinity,
-                height: 50,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
-    // Loading screen while fetching user data
-    if (userModel == null) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text(
-            'Profile',
-            style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'TexGyreAdventor'),
-          ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-        ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Loading profile...',
-                style: TextStyle(fontFamily: 'TexGyreAdventor'),
+    Widget content;
+    List<Widget>? actions;
+    Color backgroundColor;
+
+    if (user == null) {
+      backgroundColor = Colors.white;
+      content = Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(CupertinoIcons.person_circle_fill,
+                size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'Please sign in to view your profile',
+              style: TextStyle(
+                fontSize: 18,
+                fontFamily: 'TexGyreAdventor',
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 32),
+            SquircleButton(
+              label: 'Sign In',
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              width: double.infinity,
+              height: 50,
+            ),
+          ],
         ),
       );
-    }
-    
-    // Main profile screen with user data
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'TexGyreAdventor'),
+    } else if (userModel == null) {
+      backgroundColor = Colors.white;
+      content = const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              'Loading profile...',
+              style: TextStyle(fontFamily: 'TexGyreAdventor'),
+            ),
+          ],
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.pencil),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EditProfileScreen(),
-                ),
-              ).then((_) {
-                // Refresh the profile when returning from edit screen
-                _refreshData();
-              });
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
+      );
+    } else {
+      backgroundColor = Theme.of(context).colorScheme.surface;
+      actions = [
+        IconButton(
+          icon: const Icon(CupertinoIcons.pencil),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EditProfileScreen(),
+              ),
+            ).then((_) {
+              _refreshData();
+            });
+          },
+        ),
+      ];
+
+      content = RefreshIndicator(
         onRefresh: _refreshData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -206,7 +180,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Image.network(
                           'https://img.freepik.com/free-vector/tennis-ball-pattern-background_1412-34.jpg',
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox(),
                         ),
                       ),
                     ),
@@ -233,7 +208,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               child: CircleAvatar(
                                 radius: 60,
-                                backgroundColor: Theme.of(context).colorScheme.secondary,
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.secondary,
                                 child: userModel.profileImageUrl != null
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(60),
@@ -242,9 +218,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           width: 120,
                                           height: 120,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
                                             return Text(
-                                              userModel.displayName[0].toUpperCase(),
+                                              userModel.displayName[0]
+                                                  .toUpperCase(),
                                               style: const TextStyle(
                                                 fontSize: 40,
                                                 color: Colors.white,
@@ -267,9 +245,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // User name
                           Text(
                             userModel.displayName,
@@ -280,12 +258,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontFamily: 'TexGyreAdventor',
                             ),
                           ),
-                          
+
                           const SizedBox(height: 8),
-                          
+
                           // Player level
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
                               color: const Color.fromRGBO(255, 255, 255, 0.3),
                               borderRadius: BorderRadius.circular(20),
@@ -305,30 +284,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              
+
               // User stats
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Consumer<BookingProvider>(
                   builder: (context, bookingProvider, _) {
-                    final upcomingCount = bookingProvider.getUpcomingBookings().length;
+                    final upcomingCount =
+                        bookingProvider.getUpcomingBookings().length;
                     final pastCount = bookingProvider.getPastBookings().length;
                     final confirmedCount = bookingProvider.userBookings
                         .where((b) => b.status == BookingStatus.confirmed)
                         .length;
-                    
+
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildStatItem(context, upcomingCount.toString(), 'Upcoming'),
+                        _buildStatItem(
+                            context, upcomingCount.toString(), 'Upcoming'),
                         _buildStatItem(context, pastCount.toString(), 'Past'),
-                        _buildStatItem(context, confirmedCount.toString(), 'Confirmed'),
+                        _buildStatItem(
+                            context, confirmedCount.toString(), 'Confirmed'),
                       ],
                     );
                   },
                 ),
               ),
-              
+
               // Account and preferences sections
               SquircleContainer(
                 margin: const EdgeInsets.all(16),
@@ -352,19 +334,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Icons.person_outline,
                       [
                         _buildProfileItem(context, 'Email', userModel.email),
-                        if (userModel.phoneNumber != null && userModel.phoneNumber!.isNotEmpty)
-                          _buildProfileItem(context, 'Phone', userModel.phoneNumber!),
+                        if (userModel.phoneNumber != null &&
+                            userModel.phoneNumber!.isNotEmpty)
+                          _buildProfileItem(
+                              context, 'Phone', userModel.phoneNumber!),
                         _buildProfileItem(
-                          context, 
-                          'Member Since', 
-                          DateFormat('MMMM d, yyyy').format(userModel.createdAt)
+                          context,
+                          'Member Since',
+                          DateFormat('MMMM d, yyyy')
+                              .format(userModel.createdAt),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               // Playing preferences
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -385,26 +370,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Icons.sports_tennis,
                   [
                     _buildProfileItem(
-                      context, 
-                      'Player Level', 
+                      context,
+                      'Player Level',
                       _formatPlayerLevel(userModel.playerLevel),
                     ),
-                    if (userModel.preferredPlayTimes != null && userModel.preferredPlayTimes!.isNotEmpty)
+                    if (userModel.preferredPlayTimes != null &&
+                        userModel.preferredPlayTimes!.isNotEmpty)
                       _buildProfileItem(
-                        context, 
-                        'Preferred Times', 
-                        userModel.preferredPlayTimes!.join(', ')
+                        context,
+                        'Preferred Times',
+                        userModel.preferredPlayTimes!.join(', '),
                       ),
-                    if (userModel.preferredLocations != null && userModel.preferredLocations!.isNotEmpty)
+                    if (userModel.preferredLocations != null &&
+                        userModel.preferredLocations!.isNotEmpty)
                       _buildProfileItem(
-                        context, 
-                        'Preferred Locations', 
-                        userModel.preferredLocations!.join(', ')
+                        context,
+                        'Preferred Locations',
+                        userModel.preferredLocations!.join(', '),
                       ),
                   ],
                 ),
               ),
-              
+
               // Payment information
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -426,33 +413,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   [
                     userModel.stripeCustomerId != null
                         ? _buildProfileItem(
-                            context, 
-                            'Payment Methods', 
-                            userModel.paymentMethods != null && userModel.paymentMethods!.isNotEmpty
+                            context,
+                            'Payment Methods',
+                            userModel.paymentMethods != null &&
+                                    userModel.paymentMethods!.isNotEmpty
                                 ? '${userModel.paymentMethods!.length} saved'
-                                : 'No payment methods'
+                                : 'No payment methods',
                           )
                         : _buildProfileItem(
-                            context, 
-                            'Payment Methods', 
-                            'Not set up'
+                            context,
+                            'Payment Methods',
+                            'Not set up',
                           ),
                     _buildActionItem(
-                      context, 
-                      'Manage Payment Methods', 
+                      context,
+                      'Manage Payment Methods',
                       () {
-                        // TODO: Navigate to payment methods screen
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Coming soon'))
+                          const SnackBar(content: Text('Coming soon')),
                         );
                       },
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Sign out button
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -463,7 +450,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 50,
                 ),
               ),
-              
+
               // Version information
               Padding(
                 padding: const EdgeInsets.only(bottom: 24.0),
@@ -478,10 +465,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+      );
+    }
+
+    if (!widget.showScaffold) {
+      return content;
+    }
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+              fontWeight: FontWeight.bold, fontFamily: 'TexGyreAdventor'),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: actions,
       ),
+      body: content,
     );
   }
-  
+
   Widget _buildStatItem(BuildContext context, String value, String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -527,7 +533,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileSectionCard(BuildContext context, String title, IconData icon, List<Widget> items) {
+  Widget _buildProfileSectionCard(
+      BuildContext context, String title, IconData icon, List<Widget> items) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -557,7 +564,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  
+
   Widget _buildProfileItem(BuildContext context, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -584,8 +591,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  
-  Widget _buildActionItem(BuildContext context, String label, VoidCallback onTap) {
+
+  Widget _buildActionItem(
+      BuildContext context, String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -612,11 +620,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  
+
   String _formatPlayerLevel(PlayerLevel level) {
     switch (level) {
       case PlayerLevel.beginner:
-        return 'Beginner';  
+        return 'Beginner';
       case PlayerLevel.intermediate:
         return 'Intermediate';
       case PlayerLevel.advanced:
@@ -625,7 +633,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return 'Professional';
     }
   }
-  
+
   void _showSignOutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -640,9 +648,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
               await authProvider.signOut();
-              
+
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,

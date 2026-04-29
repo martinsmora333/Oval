@@ -13,20 +13,23 @@ import '../../widgets/squircle_container.dart';
 import '../bookings/booking_details_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+  const CalendarScreen({super.key, this.showScaffold = true});
+
+  final bool showScaffold;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProviderStateMixin {
+class _CalendarScreenState extends State<CalendarScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<BookingModel>> _bookingEvents = {};
   bool _isLoading = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -34,18 +37,18 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     _selectedDay = _focusedDay;
     _loadBookings();
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   // Format date and time for display
   String _formatDateTime(DateTime dateTime) {
     return '${DateFormat('EEE, MMM d, y').format(dateTime)} • ${DateFormat('h:mm a').format(dateTime)}';
   }
-  
+
   // Get booking date time
   DateTime _getBookingDateTime(BookingModel booking) {
     try {
@@ -57,10 +60,11 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
       return DateTime.now();
     }
   }
-  
+
   // Launch maps with tennis center address
   Future<void> _launchMaps(String address) async {
-    final url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}';
+    final url =
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     }
@@ -69,22 +73,24 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   void _loadBookings() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.user != null) {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-      
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
+
       // Check if we already have data to avoid unnecessary loading
       if (bookingProvider.userBookings.isEmpty) {
         // Set a loading indicator
         setState(() {
           _isLoading = true;
         });
-        
+
         // Use a timeout to prevent UI freezing if the backend is slow
-        await bookingProvider.loadUserBookings(authProvider.user!.uid)
-          .timeout(const Duration(seconds: 5), onTimeout: () {
-            debugPrint('Calendar bookings load timed out');
-            return;
-          });
-        
+        await bookingProvider
+            .loadUserBookings(authProvider.user!.uid)
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          debugPrint('Calendar bookings load timed out');
+          return;
+        });
+
         setState(() {
           _isLoading = false;
         });
@@ -105,7 +111,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
           final year = int.parse(dateParts[0]);
           final month = int.parse(dateParts[1]);
           final day = int.parse(dateParts[2]);
-          
+
           final bookingDate = DateTime(year, month, day);
 
           if (events[bookingDate] != null) {
@@ -131,7 +137,8 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   Future<void> _refreshCalendarData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.user != null) {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
       setState(() {
         _isLoading = true;
       });
@@ -149,7 +156,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     final dateTime = _getBookingDateTime(booking);
     final isPast = dateTime.isBefore(DateTime.now());
     final opponentName = booking.inviteeName ?? 'Solo Play';
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
@@ -172,7 +179,9 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                   Icon(
                     Icons.calendar_today,
                     size: 20,
-                    color: isPast ? Colors.grey : Theme.of(context).colorScheme.primary,
+                    color: isPast
+                        ? Colors.grey
+                        : Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -187,7 +196,8 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                   ),
                   // Edit button
                   IconButton(
-                    icon: Icon(Icons.edit, size: 20, color: Colors.grey.shade600),
+                    icon:
+                        Icon(Icons.edit, size: 20, color: Colors.grey.shade600),
                     onPressed: () {
                       // TODO: Implement edit functionality
                     },
@@ -196,9 +206,11 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                   ),
                   // Map button
                   IconButton(
-                    icon: Icon(Icons.location_on, size: 20, color: Colors.blue.shade600),
+                    icon: Icon(Icons.location_on,
+                        size: 20, color: Colors.blue.shade600),
                     onPressed: () {
-                      final address = '${booking.tennisCenterName}, ${booking.tennisCenter}';
+                      final address =
+                          '${booking.tennisCenterName}, ${booking.tennisCenter}';
                       _launchMaps(address);
                     },
                     padding: EdgeInsets.zero,
@@ -207,7 +219,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Tennis center name and address
               Text(
                 booking.tennisCenterName ?? 'Tennis Court',
@@ -226,7 +238,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Opponent info
               Row(
                 children: [
@@ -240,7 +252,8 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                     'Playing with: $opponentName',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isPast ? Colors.grey.shade500 : Colors.grey.shade800,
+                      color:
+                          isPast ? Colors.grey.shade500 : Colors.grey.shade800,
                     ),
                   ),
                 ],
@@ -252,203 +265,225 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     );
   }
 
+  Widget _buildTabBar(BuildContext context) {
+    return TabBar(
+      controller: _tabController,
+      labelColor: Theme.of(context).colorScheme.primary,
+      unselectedLabelColor: Colors.grey,
+      indicatorColor: Theme.of(context).colorScheme.primary,
+      tabs: const [
+        Tab(icon: Icon(CupertinoIcons.calendar)),
+        Tab(icon: Icon(CupertinoIcons.list_bullet)),
+      ],
+    );
+  }
+
+  Widget _buildTabView() {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        // Calendar Tab
+        RefreshIndicator(
+          onRefresh: _refreshCalendarData,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              TableCalendar(
+                firstDay: DateTime.utc(2023, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                calendarFormat: _calendarFormat,
+                eventLoader: _getEventsForDay,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                onDaySelected: (selectedDay, focusedDay) {
+                  if (!isSameDay(_selectedDay, selectedDay)) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  }
+                },
+                onFormatChanged: (format) {
+                  if (_calendarFormat != format) {
+                    setState(() => _calendarFormat = format);
+                  }
+                },
+                availableCalendarFormats: const {
+                  CalendarFormat.week: 'Week',
+                  CalendarFormat.month: 'Month',
+                },
+                onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+                calendarStyle: CalendarStyle(
+                  markerDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Colors.red[100],
+                    border: Border.all(color: Colors.red, width: 2.0),
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                headerStyle: HeaderStyle(
+                  titleCentered: true,
+                  formatButtonDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                  formatButtonTextStyle: const TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Consumer<BookingProvider>(
+                builder: (context, bookingProvider, _) {
+                  if (_isLoading || bookingProvider.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final dayEvents = _selectedDay != null
+                      ? _getEventsForDay(_selectedDay!)
+                      : [];
+
+                  if (dayEvents.isEmpty) {
+                    return SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              CupertinoIcons.calendar,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _selectedDay == null
+                                  ? 'Select a date to view bookings'
+                                  : 'No bookings for this day',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: dayEvents.length,
+                    itemBuilder: (context, index) {
+                      return _buildBookingCard(dayEvents[index], context);
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+
+        // Bookings Tab
+        Consumer<BookingProvider>(
+          builder: (context, bookingProvider, _) {
+            if (bookingProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final allBookings =
+                List<BookingModel>.from(bookingProvider.userBookings)
+                  ..sort((a, b) =>
+                      _getBookingDateTime(b).compareTo(_getBookingDateTime(a)));
+
+            if (allBookings.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      CupertinoIcons.calendar,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No bookings yet',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: SquircleButton(
+                        label: 'Book a Court',
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/tennis_centers'),
+                        width: double.infinity,
+                        height: 40,
+                        labelStyle: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: _refreshCalendarData,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: allBookings.length,
+                itemBuilder: (context, index) {
+                  return _buildBookingCard(allBookings[index], context);
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _bookingEvents = _getBookingEvents();
-    
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+
+    if (widget.showScaffold) {
+      return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
-          toolbarHeight: kToolbarHeight * 0.7, // More compact height
+          toolbarHeight: kToolbarHeight * 0.7,
           titleSpacing: 0,
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Theme.of(context).colorScheme.primary,
-            tabs: const [
-              Tab(icon: Icon(CupertinoIcons.calendar)),
-              Tab(icon: Icon(CupertinoIcons.list_bullet)),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(kTextTabBarHeight),
+            child: _buildTabBar(context),
           ),
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            // Calendar Tab
-            RefreshIndicator(
-              onRefresh: _refreshCalendarData,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  TableCalendar(
-                    firstDay: DateTime.utc(2023, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: _focusedDay,
-                    calendarFormat: _calendarFormat,
-                    eventLoader: _getEventsForDay,
-                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      if (!isSameDay(_selectedDay, selectedDay)) {
-                        setState(() {
-                          _selectedDay = selectedDay;
-                          _focusedDay = focusedDay;
-                        });
-                      }
-                    },
-                    onFormatChanged: (format) {
-                      if (_calendarFormat != format) {
-                        setState(() => _calendarFormat = format);
-                      }
-                    },
-                    availableCalendarFormats: const {
-                      CalendarFormat.week: 'Week',
-                      CalendarFormat.month: 'Month',
-                    },
-                    onPageChanged: (focusedDay) => _focusedDay = focusedDay,
-                    calendarStyle: CalendarStyle(
-                      markerDecoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      todayDecoration: BoxDecoration(
-                        color: Colors.red[100],
-                        border: Border.all(color: Colors.red, width: 2.0),
-                        shape: BoxShape.circle,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    headerStyle: HeaderStyle(
-                      titleCentered: true,
-                      formatButtonDecoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      formatButtonTextStyle: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Consumer<BookingProvider>(
-                    builder: (context, bookingProvider, _) {
-                      if (_isLoading || bookingProvider.isLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      
-                      final dayEvents = _selectedDay != null ? _getEventsForDay(_selectedDay!) : [];
-                      
-                      if (dayEvents.isEmpty) {
-                        return SizedBox(
-                          height: 200,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  CupertinoIcons.calendar,
-                                  size: 48,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _selectedDay == null
-                                      ? 'Select a date to view bookings'
-                                      : 'No bookings for this day',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: dayEvents.length,
-                        itemBuilder: (context, index) {
-                          return _buildBookingCard(dayEvents[index], context);
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            
-            // Bookings Tab
-            Consumer<BookingProvider>(
-              builder: (context, bookingProvider, _) {
-                if (bookingProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                final allBookings = List<BookingModel>.from(bookingProvider.userBookings)
-                  ..sort((a, b) => _getBookingDateTime(b).compareTo(_getBookingDateTime(a)));
-                
-                if (allBookings.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          CupertinoIcons.calendar,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No bookings yet',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                          child: SquircleButton(
-                            label: 'Book a Court',
-                            onPressed: () => Navigator.pushNamed(context, '/tennis_centers'),
-                            width: double.infinity,
-                            height: 40,
-                            labelStyle: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                
-                return RefreshIndicator(
-                  onRefresh: _refreshCalendarData,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: allBookings.length,
-                    itemBuilder: (context, index) {
-                      return _buildBookingCard(allBookings[index], context);
-                    },
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+        body: _buildTabView(),
         floatingActionButton: FloatingActionButton(
           onPressed: () => Navigator.pushNamed(context, '/tennis_centers'),
           child: const Icon(Icons.add),
         ),
-      ),
+      );
+    }
+
+    return Column(
+      children: [
+        Material(color: Colors.white, child: _buildTabBar(context)),
+        Expanded(child: _buildTabView()),
+      ],
     );
   }
 }
@@ -501,12 +536,13 @@ class BookingCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: booking.status == BookingStatus.confirmed
-                          ? const Color(0xFFE8F5E9)  // Light green
+                          ? const Color(0xFFE8F5E9) // Light green
                           : booking.status == BookingStatus.pending
-                              ? const Color(0xFFFFF8E1)  // Light orange
+                              ? const Color(0xFFFFF8E1) // Light orange
                               : const Color(0xFFFFEBEE), // Light red
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
@@ -553,7 +589,7 @@ class BookingCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               // Payment status
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
@@ -570,11 +606,12 @@ class BookingCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(CupertinoIcons.sportscourt, size: 16, color: Colors.grey),
+                  const Icon(CupertinoIcons.sportscourt,
+                      size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
                     'Court ${booking.courtName ?? ""}',
@@ -604,7 +641,8 @@ class BookingCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Row(
                     children: [
-                      const Icon(CupertinoIcons.person_2, size: 16, color: Colors.grey),
+                      const Icon(CupertinoIcons.person_2,
+                          size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(
                         'With ${booking.inviteeName ?? 'a partner'}',
@@ -616,11 +654,12 @@ class BookingCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              
+
               // Total amount
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),

@@ -10,80 +10,98 @@ import '../bookings/booking_details_screen.dart';
 import '../../widgets/squircle_container.dart';
 
 class InvitationsScreen extends StatefulWidget {
-  const InvitationsScreen({super.key});
+  const InvitationsScreen({super.key, this.showScaffold = true});
+
+  final bool showScaffold;
 
   @override
   State<InvitationsScreen> createState() => _InvitationsScreenState();
 }
 
-class _InvitationsScreenState extends State<InvitationsScreen> with SingleTickerProviderStateMixin {
+class _InvitationsScreenState extends State<InvitationsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Load invitations
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (authProvider.user != null) {
-        final invitationProvider = Provider.of<InvitationProvider>(context, listen: false);
+        final invitationProvider =
+            Provider.of<InvitationProvider>(context, listen: false);
         invitationProvider.loadReceivedInvitations(authProvider.user!.uid);
         invitationProvider.loadSentInvitations(authProvider.user!.uid);
       }
     });
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        toolbarHeight: kToolbarHeight * 0.7, // Matches Calendar screen
-        titleSpacing: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Theme.of(context).colorScheme.primary,
-          tabs: const [
-            Tab(text: 'Received'),
-            Tab(text: 'Sent'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Received invitations tab
-          _buildReceivedInvitationsTab(),
-          
-          // Sent invitations tab
-          _buildSentInvitationsTab(),
-        ],
-      ),
+  PreferredSizeWidget _buildTabBar(BuildContext context) {
+    return TabBar(
+      controller: _tabController,
+      labelColor: Theme.of(context).colorScheme.primary,
+      unselectedLabelColor: Colors.grey,
+      indicatorColor: Theme.of(context).colorScheme.primary,
+      tabs: const [
+        Tab(text: 'Received'),
+        Tab(text: 'Sent'),
+      ],
     );
   }
-  
+
+  Widget _buildTabView() {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildReceivedInvitationsTab(),
+        _buildSentInvitationsTab(),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.showScaffold) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          toolbarHeight: kToolbarHeight * 0.7,
+          titleSpacing: 0,
+          bottom: _buildTabBar(context),
+        ),
+        body: _buildTabView(),
+      );
+    }
+
+    return Column(
+      children: [
+        Material(color: Colors.white, child: _buildTabBar(context)),
+        Expanded(child: _buildTabView()),
+      ],
+    );
+  }
+
   Widget _buildReceivedInvitationsTab() {
     return Consumer<InvitationProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         final receivedInvitations = provider.receivedInvitations;
-        
+
         if (receivedInvitations.isEmpty) {
           return Center(
             child: Column(
@@ -106,7 +124,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
             ),
           );
         }
-        
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: receivedInvitations.length,
@@ -118,16 +136,16 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       },
     );
   }
-  
+
   Widget _buildSentInvitationsTab() {
     return Consumer<InvitationProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         final sentInvitations = provider.sentInvitations;
-        
+
         if (sentInvitations.isEmpty) {
           return Center(
             child: Column(
@@ -150,7 +168,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
             ),
           );
         }
-        
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: sentInvitations.length,
@@ -162,12 +180,13 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       },
     );
   }
-  
+
   Widget _buildReceivedInvitationCard(InvitationModel invitation) {
     final now = DateTime.now();
     final isExpired = invitation.isExpired(now);
-    final isPending = invitation.status == InvitationStatus.pending && !isExpired;
-    
+    final isPending =
+        invitation.status == InvitationStatus.pending && !isExpired;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -184,7 +203,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: _getStatusColor(invitation.status, isExpired),
                     borderRadius: BorderRadius.circular(12),
@@ -211,9 +231,9 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Invitation details
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +242,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                   backgroundColor: Colors.blue,
                   radius: 20,
                   child: Text(
-                    invitation.creatorName != null && invitation.creatorName!.isNotEmpty
+                    invitation.creatorName != null &&
+                            invitation.creatorName!.isNotEmpty
                         ? invitation.creatorName![0].toUpperCase()
                         : 'U',
                     style: const TextStyle(
@@ -250,7 +271,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                           color: Colors.grey[800],
                         ),
                       ),
-                      if (invitation.message != null && invitation.message!.isNotEmpty) ...[
+                      if (invitation.message != null &&
+                          invitation.message!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -272,9 +294,9 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Booking details
             FutureBuilder(
               future: Provider.of<BookingProvider>(context, listen: false)
@@ -288,13 +310,13 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                     ),
                   );
                 }
-                
+
                 final booking = snapshot.data;
-                
+
                 if (booking == null) {
                   return const Text('Booking details not available');
                 }
-                
+
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -363,7 +385,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                 );
               },
             ),
-            
+
             // Action buttons for pending invitations
             if (isPending) ...[
               const SizedBox(height: 16),
@@ -404,12 +426,13 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildSentInvitationCard(InvitationModel invitation) {
     final now = DateTime.now();
     final isExpired = invitation.isExpired(now);
-    final isPending = invitation.status == InvitationStatus.pending && !isExpired;
-    
+    final isPending =
+        invitation.status == InvitationStatus.pending && !isExpired;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -426,7 +449,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: _getStatusColor(invitation.status, isExpired),
                     borderRadius: BorderRadius.circular(12),
@@ -453,9 +477,9 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Invitation details
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,7 +488,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                   backgroundColor: Colors.orange,
                   radius: 20,
                   child: Text(
-                    invitation.inviteeName != null && invitation.inviteeName!.isNotEmpty
+                    invitation.inviteeName != null &&
+                            invitation.inviteeName!.isNotEmpty
                         ? invitation.inviteeName![0].toUpperCase()
                         : 'U',
                     style: const TextStyle(
@@ -496,7 +521,8 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                           color: Colors.grey[800],
                         ),
                       ),
-                      if (invitation.message != null && invitation.message!.isNotEmpty) ...[
+                      if (invitation.message != null &&
+                          invitation.message!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -518,9 +544,9 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Booking details
             FutureBuilder(
               future: Provider.of<BookingProvider>(context, listen: false)
@@ -534,13 +560,13 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                     ),
                   );
                 }
-                
+
                 final booking = snapshot.data;
-                
+
                 if (booking == null) {
                   return const Text('Booking details not available');
                 }
-                
+
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -609,7 +635,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
                 );
               },
             ),
-            
+
             // Cancel button for pending invitations
             if (isPending) ...[
               const SizedBox(height: 16),
@@ -633,26 +659,23 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       ),
     );
   }
-  
+
   Future<void> _acceptInvitation(String invitationId) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final invitationProvider = Provider.of<InvitationProvider>(context, listen: false);
-    
+    final invitationProvider =
+        Provider.of<InvitationProvider>(context, listen: false);
+
     if (authProvider.user != null) {
       try {
         final success = await invitationProvider.acceptInvitation(
-          invitationId, 
-          authProvider.user!.uid
-        );
-        
+            invitationId, authProvider.user!.uid);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                success 
-                    ? 'Invitation accepted' 
-                    : 'Failed to accept invitation'
-              ),
+              content: Text(success
+                  ? 'Invitation accepted'
+                  : 'Failed to accept invitation'),
             ),
           );
         }
@@ -665,26 +688,23 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       }
     }
   }
-  
+
   Future<void> _declineInvitation(String invitationId) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final invitationProvider = Provider.of<InvitationProvider>(context, listen: false);
-    
+    final invitationProvider =
+        Provider.of<InvitationProvider>(context, listen: false);
+
     if (authProvider.user != null) {
       try {
         final success = await invitationProvider.declineInvitation(
-          invitationId, 
-          authProvider.user!.uid
-        );
-        
+            invitationId, authProvider.user!.uid);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                success 
-                    ? 'Invitation declined' 
-                    : 'Failed to decline invitation'
-              ),
+              content: Text(success
+                  ? 'Invitation declined'
+                  : 'Failed to decline invitation'),
             ),
           );
         }
@@ -697,26 +717,23 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       }
     }
   }
-  
+
   Future<void> _cancelInvitation(String invitationId) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final invitationProvider = Provider.of<InvitationProvider>(context, listen: false);
-    
+    final invitationProvider =
+        Provider.of<InvitationProvider>(context, listen: false);
+
     if (authProvider.user != null) {
       try {
         final success = await invitationProvider.cancelInvitation(
-          invitationId, 
-          authProvider.user!.uid
-        );
-        
+            invitationId, authProvider.user!.uid);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                success 
-                    ? 'Invitation cancelled' 
-                    : 'Failed to cancel invitation'
-              ),
+              content: Text(success
+                  ? 'Invitation cancelled'
+                  : 'Failed to cancel invitation'),
             ),
           );
         }
@@ -729,12 +746,12 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
       }
     }
   }
-  
+
   Color _getStatusColor(InvitationStatus status, bool isExpired) {
     if (isExpired && status == InvitationStatus.pending) {
       return Colors.grey;
     }
-    
+
     switch (status) {
       case InvitationStatus.pending:
         return Colors.orange;
@@ -746,11 +763,11 @@ class _InvitationsScreenState extends State<InvitationsScreen> with SingleTicker
         return Colors.grey;
     }
   }
-  
+
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays > 0) {
       return DateFormat('MMM d').format(dateTime);
     } else if (difference.inHours > 0) {
