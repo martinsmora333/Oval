@@ -1,4 +1,3 @@
-import '../models/booking_model.dart';
 import '../models/invitation_model.dart';
 import '../models/user_model.dart';
 import 'profiles_repository.dart';
@@ -20,35 +19,24 @@ class InvitationsRepository extends RepositorySupport {
         .inMinutes
         .clamp(5, 10080);
 
-    final created = await client
-        .from('booking_invitations')
-        .insert(
-          <String, dynamic>{
-            'booking_id': invitation.bookingId,
-            'creator_user_id': invitation.creatorId,
-            'invitee_user_id': invitation.inviteeId,
-            'priority': invitation.priority,
-            'status': invitation.status.dbValue,
-            'message': invitation.message,
-            'expires_at': invitation.expiresAt.toIso8601String(),
-            'response_window_minutes': responseWindowMinutes,
-          },
-        )
-        .select()
-        .single();
+    final result = await client.rpc(
+      'queue_booking_invitation',
+      params: <String, dynamic>{
+        'target_booking_id': invitation.bookingId,
+        'target_invitee_user_id': invitation.inviteeId,
+        'invitation_message': invitation.message,
+        'invitation_response_window_minutes': responseWindowMinutes,
+      },
+    );
 
-    return created['id'] as String;
+    final row = singleRpcRow(result);
+    return row['invitation_id'] as String;
   }
 
   Future<void> updateInvitation(InvitationModel invitation) async {
-    await client.from('booking_invitations').update(
-      <String, dynamic>{
-        'message': invitation.message,
-        'priority': invitation.priority,
-        'status': invitation.status.dbValue,
-        'expires_at': invitation.expiresAt.toIso8601String(),
-      },
-    ).eq('id', invitation.id);
+    throw UnsupportedError(
+      'Direct invitation edits are not supported. Queue a new invitation or cancel the existing one.',
+    );
   }
 
   Future<void> updateInvitationStatus(
@@ -56,55 +44,35 @@ class InvitationsRepository extends RepositorySupport {
     InvitationStatus status,
     DateTime respondedAt,
   ) async {
-    final invitation = await client
-        .from('booking_invitations')
-        .select('id,booking_id,invitee_user_id')
-        .eq('id', invitationId)
-        .maybeSingle();
-
-    if (invitation == null) {
-      return;
-    }
-
-    final booking = await client
-        .from('bookings')
-        .select('id,status,opponent_user_id')
-        .eq('id', invitation['booking_id'] as String)
-        .maybeSingle();
-
-    final bookingStatus = booking == null ? null : booking['status'] as String?;
-
-    if ((status == InvitationStatus.accepted ||
-            status == InvitationStatus.declined) &&
-        bookingStatus == BookingStatus.pending.dbValue) {
-      await client.rpc(
-        'respond_to_booking_invitation',
-        params: <String, dynamic>{
-          'target_invitation_id': invitationId,
-          'new_status': status.dbValue,
-        },
-      );
-      return;
-    }
-
-    await client.from('booking_invitations').update(
-      <String, dynamic>{
-        'status': status.dbValue,
-        'responded_at': respondedAt.toIso8601String(),
-      },
-    ).eq('id', invitationId);
-
-    if (status == InvitationStatus.accepted && booking != null) {
-      await client.from('bookings').update(
-        <String, dynamic>{
-          'opponent_user_id': invitation['invitee_user_id'],
-        },
-      ).eq('id', booking['id'] as String);
+    switch (status) {
+      case InvitationStatus.accepted:
+      case InvitationStatus.declined:
+        await client.rpc(
+          'respond_to_booking_invitation',
+          params: <String, dynamic>{
+            'target_invitation_id': invitationId,
+            'new_status': status.dbValue,
+          },
+        );
+        return;
+      case InvitationStatus.cancelled:
+        await deleteInvitation(invitationId);
+        return;
+      case InvitationStatus.queued:
+      case InvitationStatus.pending:
+      case InvitationStatus.expired:
+      case InvitationStatus.skipped:
+        throw UnsupportedError(
+          'Invitation status $status must be managed by the booking workflow.',
+        );
     }
   }
 
   Future<void> deleteInvitation(String invitationId) async {
-    await client.from('booking_invitations').delete().eq('id', invitationId);
+    await client.rpc(
+      'cancel_booking_invitation',
+      params: <String, dynamic>{'target_invitation_id': invitationId},
+    );
   }
 
   Future<InvitationModel?> getInvitation(String invitationId) async {

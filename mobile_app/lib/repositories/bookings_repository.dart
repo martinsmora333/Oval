@@ -15,41 +15,30 @@ class BookingsRepository extends RepositorySupport {
   final ProfilesRepository _profilesRepository = ProfilesRepository();
 
   Future<String> createBooking(BookingModel booking) async {
-    final payload = <String, dynamic>{
-      'center_id': booking.tennisCenter,
-      'court_id': booking.courtId,
-      'created_by': booking.creatorId,
-      'opponent_user_id': booking.inviteeId,
-      'status': booking.status.dbValue,
-      'payment_status': booking.paymentStatus.dbValue,
-      'total_amount': booking.totalAmount,
-      'amount_per_player': booking.amountPerPlayer,
-      'starts_at': booking.startsAt.toIso8601String(),
-      'ends_at': booking.endsAt.toIso8601String(),
-      'confirmed_at': booking.confirmedAt?.toIso8601String(),
-    };
+    final result = await client.rpc(
+      'create_booking_workflow',
+      params: <String, dynamic>{
+        'target_center_id': booking.tennisCenter,
+        'target_court_id': booking.courtId,
+        'target_starts_at': booking.startsAt.toIso8601String(),
+        'target_ends_at': booking.endsAt.toIso8601String(),
+        'booking_total_amount': booking.totalAmount,
+        'booking_amount_per_player': booking.amountPerPlayer,
+        'booking_currency': 'AUD',
+        'initial_invitee_ids': booking.inviteeId == null
+            ? <String>[]
+            : <String>[booking.inviteeId!],
+      },
+    );
 
-    final created =
-        await client.from('bookings').insert(payload).select().single();
-    return created['id'] as String;
+    final row = singleRpcRow(result);
+    return row['booking_id'] as String;
   }
 
   Future<void> updateBooking(BookingModel booking) async {
-    await client.from('bookings').update(
-      <String, dynamic>{
-        'court_id': booking.courtId,
-        'center_id': booking.tennisCenter,
-        'created_by': booking.creatorId,
-        'opponent_user_id': booking.inviteeId,
-        'status': booking.status.dbValue,
-        'payment_status': booking.paymentStatus.dbValue,
-        'total_amount': booking.totalAmount,
-        'amount_per_player': booking.amountPerPlayer,
-        'starts_at': booking.startsAt.toIso8601String(),
-        'ends_at': booking.endsAt.toIso8601String(),
-        'confirmed_at': booking.confirmedAt?.toIso8601String(),
-      },
-    ).eq('id', booking.id);
+    throw UnsupportedError(
+      'Direct booking edits are not supported. Use workflow functions or dedicated payment updates.',
+    );
   }
 
   Future<void> updateBookingStatus(
@@ -57,19 +46,27 @@ class BookingsRepository extends RepositorySupport {
     BookingStatus status, {
     DateTime? confirmedAt,
   }) async {
-    final updates = <String, dynamic>{
-      'status': status.dbValue,
-    };
-
-    if (status == BookingStatus.confirmed) {
-      updates['confirmed_at'] =
-          (confirmedAt ?? DateTime.now()).toIso8601String();
-    }
     if (status == BookingStatus.cancelled) {
-      updates['cancelled_at'] = DateTime.now().toIso8601String();
+      await cancelBooking(bookingId);
+      return;
     }
 
-    await client.from('bookings').update(updates).eq('id', bookingId);
+    throw UnsupportedError(
+      'Booking status changes must go through the booking workflow.',
+    );
+  }
+
+  Future<void> cancelBooking(
+    String bookingId, {
+    String? cancelReason,
+  }) async {
+    await client.rpc(
+      'cancel_booking_workflow',
+      params: <String, dynamic>{
+        'target_booking_id': bookingId,
+        'requested_cancel_reason': cancelReason,
+      },
+    );
   }
 
   Future<BookingModel?> getBooking(String bookingId) async {

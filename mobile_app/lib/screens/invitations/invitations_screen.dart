@@ -430,8 +430,10 @@ class _InvitationsScreenState extends State<InvitationsScreen>
   Widget _buildSentInvitationCard(InvitationModel invitation) {
     final now = DateTime.now();
     final isExpired = invitation.isExpired(now);
-    final isPending =
+    final isAwaitingResponse =
         invitation.status == InvitationStatus.pending && !isExpired;
+    final canCancel =
+        invitation.status == InvitationStatus.queued || isAwaitingResponse;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -467,7 +469,7 @@ class _InvitationsScreenState extends State<InvitationsScreen>
                   ),
                 ),
                 Text(
-                  isPending
+                  isAwaitingResponse
                       ? invitation.formattedTimeRemaining(now)
                       : _formatDateTime(invitation.createdAt),
                   style: TextStyle(
@@ -512,11 +514,13 @@ class _InvitationsScreenState extends State<InvitationsScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        isPending
+                        isAwaitingResponse
                             ? 'waiting for response'
-                            : invitation.status == InvitationStatus.accepted
-                                ? 'accepted your invitation'
-                                : 'declined your invitation',
+                            : invitation.status == InvitationStatus.queued
+                                ? 'queued for invitation'
+                                : invitation.status == InvitationStatus.accepted
+                                    ? 'accepted your invitation'
+                                    : 'declined your invitation',
                         style: TextStyle(
                           color: Colors.grey[800],
                         ),
@@ -636,8 +640,8 @@ class _InvitationsScreenState extends State<InvitationsScreen>
               },
             ),
 
-            // Cancel button for pending invitations
-            if (isPending) ...[
+            // Cancel button for queued or active invitations
+            if (canCancel) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

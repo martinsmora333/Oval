@@ -8,7 +8,7 @@ import '../../models/booking_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/booking_provider.dart';
 import '../../widgets/squircle_container.dart';
-// import '../invitations/create_invitation_screen.dart'; // Might be used in future
+import '../bookings/booking_details_screen.dart';
 
 class CourtBookingScreen extends StatefulWidget {
   final CourtModel court;
@@ -28,6 +28,7 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
   DateTime _selectedDate = DateTime.now();
   AvailabilityModel? _selectedTimeSlot;
   bool _isInvitingPlayer = false;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -74,11 +75,13 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
     }
   }
 
-  void _bookCourt() async {
-    if (_selectedTimeSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a time slot')),
-      );
+  Future<void> _bookCourt() async {
+    if (_selectedTimeSlot == null || _isSubmitting) {
+      if (_selectedTimeSlot == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a time slot')),
+        );
+      }
       return;
     }
 
@@ -94,11 +97,10 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
     }
 
     setState(() {
-      _isInvitingPlayer = true;
+      _isSubmitting = true;
     });
 
     try {
-      // Create a booking
       final booking = BookingModel(
         id: '',
         courtId: widget.court.id,
@@ -114,41 +116,42 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
           _selectedTimeSlot!.endTime,
         ),
         price: widget.court.pricePerHour,
-        status: BookingStatus.confirmed,
+        status: BookingStatus.pending,
         paymentStatus: PaymentStatus.pending,
         totalAmount: widget.court.pricePerHour,
         amountPerPlayer: widget.court.pricePerHour / 2,
         createdAt: DateTime.now(),
       );
 
-      await bookingProvider.createBooking(booking);
+      final bookingId = await bookingProvider.createBooking(booking);
+      if (!mounted) {
+        return;
+      }
 
-      if (mounted) {
-        // Navigate to invitation screen or back to previous screen
-        if (_isInvitingPlayer) {
-          // For demo purposes, we'll just show a success message
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text(
-                    'Court booked successfully. You can invite players from the bookings screen.')),
-          );
-        } else {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Court booked successfully')),
-          );
-        }
-      }
+      final messenger = ScaffoldMessenger.of(context);
+      final successMessage = _isInvitingPlayer
+          ? 'Booking hold created. Add players from booking details.'
+          : 'Booking hold created.';
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => BookingDetailsScreen(bookingId: bookingId),
+        ),
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text(successMessage)),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error booking court: $e')),
-        );
-        setState(() {
-          _isInvitingPlayer = false;
-        });
+      if (!mounted) {
+        return;
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error booking court: $e')),
+      );
+      setState(() {
+        _isSubmitting = false;
+      });
     }
   }
 
@@ -363,11 +366,13 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                   children: [
                     Checkbox(
                       value: _isInvitingPlayer,
-                      onChanged: (value) {
-                        setState(() {
-                          _isInvitingPlayer = value ?? false;
-                        });
-                      },
+                      onChanged: _isSubmitting
+                          ? null
+                          : (value) {
+                              setState(() {
+                                _isInvitingPlayer = value ?? false;
+                              });
+                            },
                       activeColor: Theme.of(context).colorScheme.primary,
                     ),
                     const Text(
@@ -383,7 +388,9 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _selectedTimeSlot != null ? _bookCourt : null,
+                    onPressed: _selectedTimeSlot != null && !_isSubmitting
+                        ? _bookCourt
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
@@ -393,13 +400,24 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
                       ),
                       disabledBackgroundColor: Colors.grey[300],
                     ),
-                    child: Text(
-                      'Book Court for \$${_selectedTimeSlot != null ? widget.court.pricePerHour.toStringAsFixed(0) : '0'}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            'Book Court for \$${_selectedTimeSlot != null ? widget.court.pricePerHour.toStringAsFixed(0) : '0'}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],

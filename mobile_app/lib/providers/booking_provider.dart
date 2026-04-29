@@ -119,9 +119,9 @@ class BookingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _bookingsRepository.updateBookingStatus(
+      await _bookingsRepository.cancelBooking(
         bookingId,
-        BookingStatus.cancelled,
+        cancelReason: 'user_cancelled',
       );
       await loadUserBookings(userId, forceRefresh: true);
       return true;

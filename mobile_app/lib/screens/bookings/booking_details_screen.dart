@@ -149,7 +149,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           endTime: _parseBookingTime(_booking!, _booking!.endTime),
         ),
       ),
-    );
+    ).then((_) => _loadBookingDetails());
   }
 
   DateTime _parseBookingDate(BookingModel booking) {
@@ -246,10 +246,18 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final startTime = _parseBookingTime(_booking!, _booking!.startTime);
     final endTime = _parseBookingTime(_booking!, _booking!.endTime);
 
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currentUserId = authProvider.user?.uid;
+    final isCreator = currentUserId != null && currentUserId == _booking!.creatorId;
+    final isOpponent = currentUserId != null && currentUserId == _booking!.inviteeId;
     final isUpcoming = _booking!.isUpcoming(DateTime.now());
-    final canCancel = isUpcoming && _booking!.status == BookingStatus.confirmed;
+    final canCancel = isUpcoming &&
+        (isCreator || isOpponent) &&
+        (_booking!.status == BookingStatus.pending ||
+            _booking!.status == BookingStatus.confirmed);
     final canInvite = isUpcoming &&
-        _booking!.status == BookingStatus.confirmed &&
+        isCreator &&
+        _booking!.status == BookingStatus.pending &&
         _booking!.inviteeId == null;
 
     return Scaffold(
@@ -523,7 +531,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                       ),
                     ],
                     const SizedBox(height: 16),
-                    if (_booking!.paymentStatus != PaymentStatus.complete) ...[
+                    if (_booking!.status == BookingStatus.confirmed &&
+                        _booking!.paymentStatus != PaymentStatus.complete) ...[
                       SquircleButton(
                         label: 'Make Payment',
                         onPressed: () {

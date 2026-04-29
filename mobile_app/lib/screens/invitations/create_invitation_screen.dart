@@ -90,7 +90,7 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
         inviteeId: _selectedContact!.id,
         inviteeName: _selectedContact!.displayName,
         message: _messageController.text.trim(),
-        status: InvitationStatus.pending,
+        status: InvitationStatus.queued,
         createdAt: DateTime.now(),
         expiresAt: DateTime.now().add(const Duration(days: 1)),
         priority: 1, // Setting a default priority
@@ -104,7 +104,7 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invitation sent successfully')),
+          const SnackBar(content: Text('Player added to the invitation queue')),
         );
         
         Navigator.pop(context);

@@ -116,6 +116,34 @@ abstract class RepositorySupport {
     return grouped;
   }
 
+  Map<String, dynamic> singleRpcRow(dynamic result) {
+    if (result is List) {
+      if (result.isEmpty) {
+        throw StateError('RPC returned no rows');
+      }
+      final row = result.first;
+      if (row is Map<String, dynamic>) {
+        return row;
+      }
+      if (row is Map) {
+        return row.map(
+          (key, value) => MapEntry(key.toString(), value),
+        );
+      }
+    }
+
+    if (result is Map<String, dynamic>) {
+      return result;
+    }
+    if (result is Map) {
+      return result.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    }
+
+    throw StateError('Unexpected RPC result: $result');
+  }
+
   BookingStatus bookingStatusFromDb(String? value) =>
       BookingStatus.fromDb(value);
   PaymentStatus paymentStatusFromDb(String? value) =>
