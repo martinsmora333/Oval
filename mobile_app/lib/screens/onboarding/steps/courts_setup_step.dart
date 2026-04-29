@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:figma_squircle/figma_squircle.dart';
 import 'package:provider/provider.dart';
+
 import 'package:mobile_app/providers/onboarding_provider.dart';
 
-class CourtsSetupStep extends StatelessWidget {
+class CourtsSetupStep extends StatefulWidget {
   final List<dynamic> initialCourts;
   final Function(List<Map<String, dynamic>>) onChanged;
 
@@ -15,31 +16,72 @@ class CourtsSetupStep extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final onboarding = Provider.of<OnboardingProvider>(context);
-    final courts = onboarding.draft.courts;
+  State<CourtsSetupStep> createState() => _CourtsSetupStepState();
+}
 
-    // Initialize with provided courts or empty list
-    final initialCourtsList = initialCourts.isNotEmpty
-        ? initialCourts
-            .whereType<Map<dynamic, dynamic>>()
-            .map<Map<String, dynamic>>((court) => Map<String, dynamic>.from(court))
-            .toList()
-        : <Map<String, dynamic>>[];
+class _CourtsSetupStepState extends State<CourtsSetupStep> {
+  bool _didSeedProvider = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didSeedProvider) {
+      return;
+    }
+
+    final onboarding = context.read<OnboardingProvider>();
+    final initialCourtsList = widget.initialCourts
+        .whereType<Map<dynamic, dynamic>>()
+        .map<Map<String, dynamic>>(
+          (court) => Map<String, dynamic>.from(court),
+        )
+        .toList(growable: false);
 
     if (initialCourtsList.isNotEmpty) {
       onboarding.initializeCourts(initialCourtsList);
-    } else {
-      onboarding.addCourt({
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'name': 'Court 1',
-        'surface': 'Hard',
-        'indoor': false,
-        'lighting': 'None',
-        'pricePerHour': 25.0,
-        'isActive': true,
-      });
     }
+
+    _didSeedProvider = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _syncParent(onboarding);
+    });
+  }
+
+  void _syncParent(OnboardingProvider onboarding) {
+    widget.onChanged(
+      onboarding.draft.courts
+          .map((court) => Map<String, dynamic>.from(court))
+          .toList(growable: false),
+    );
+  }
+
+  void _updateCourt(
+    OnboardingProvider onboarding,
+    String id,
+    Map<String, dynamic> updates,
+  ) {
+    onboarding.updateCourt(id, updates);
+    _syncParent(onboarding);
+  }
+
+  void _removeCourt(OnboardingProvider onboarding, String id) {
+    onboarding.removeCourt(id);
+    _syncParent(onboarding);
+  }
+
+  void _addCourt(OnboardingProvider onboarding) {
+    onboarding.addCourt();
+    _syncParent(onboarding);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final onboarding = Provider.of<OnboardingProvider>(context);
+    final courts = onboarding.draft.courts;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -73,12 +115,21 @@ class CourtsSetupStep extends StatelessWidget {
                     ListTile(
                       title: Text(
                         court['name'] ?? 'Court ${index + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                       trailing: courts.length > 1
                           ? IconButton(
-                              icon: const Icon(CupertinoIcons.trash, color: Colors.red),
-                              onPressed: () => onboarding.removeCourt(court['id'] as String),
+                              icon: const Icon(
+                                CupertinoIcons.trash,
+                                color: Colors.red,
+                              ),
+                              onPressed: () => _removeCourt(
+                                onboarding,
+                                court['id'] as String,
+                              ),
                             )
                           : null,
                     ),
@@ -91,38 +142,71 @@ class CourtsSetupStep extends StatelessWidget {
                           _buildDropdownField(
                             label: 'Surface',
                             value: court['surface'] ?? 'Hard',
-                            items: ['Hard', 'Clay', 'Grass', 'Carpet', 'Artificial Grass'],
-                            onChanged: (value) => onboarding.updateCourt(court['id'] as String, {'surface': value}),
+                            items: [
+                              'Hard',
+                              'Clay',
+                              'Grass',
+                              'Carpet',
+                              'Artificial Grass',
+                            ],
+                            onChanged: (value) => _updateCourt(
+                              onboarding,
+                              court['id'] as String,
+                              {'surface': value},
+                            ),
                           ),
                           const SizedBox(height: 16),
                           _buildDropdownField(
                             label: 'Lighting',
                             value: court['lighting'] ?? 'None',
                             items: ['None', 'Floodlights', 'Indoor'],
-                            onChanged: (value) => onboarding.updateCourt(court['id'] as String, {'lighting': value}),
+                            onChanged: (value) => _updateCourt(
+                              onboarding,
+                              court['id'] as String,
+                              {'lighting': value},
+                            ),
                           ),
                           const SizedBox(height: 16),
                           _buildPriceField(
                             context: context,
-                            initialValue: court['pricePerHour']?.toString() ?? '0.0',
-                            onChanged: (value) => onboarding.updateCourt(court['id'] as String, {'pricePerHour': double.tryParse(value) ?? 0.0}),
+                            initialValue:
+                                court['pricePerHour']?.toString() ?? '0.0',
+                            onChanged: (value) => _updateCourt(
+                              onboarding,
+                              court['id'] as String,
+                              {
+                                'pricePerHour': double.tryParse(value) ?? 0.0,
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            label: 'Court Name',
+                            initialValue: court['name'] ?? 'Court ${index + 1}',
+                            onChanged: (value) => _updateCourt(
+                              onboarding,
+                              court['id'] as String,
+                              {'name': value},
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  label: 'Court Name',
-                                  initialValue: court['name'] ?? 'Court ${index + 1}',
-                                  onChanged: (value) => onboarding.updateCourt(court['id'] as String, {'name': value}),
+                              const Text(
+                                'Indoor Court',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              SwitchListTile(
-                                title: const Text('Indoor Court'),
+                              const Spacer(),
+                              Switch(
                                 value: court['indoor'] ?? false,
-                                onChanged: (value) => onboarding.updateCourt(court['id'] as String, {'indoor': value}),
-                                contentPadding: EdgeInsets.zero,
+                                onChanged: (value) => _updateCourt(
+                                  onboarding,
+                                  court['id'] as String,
+                                  {'indoor': value},
+                                ),
                               ),
                             ],
                           ),
@@ -136,9 +220,7 @@ class CourtsSetupStep extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              onboarding.addCourt();
-            },
+            onPressed: () => _addCourt(onboarding),
             child: const Text('Add Court'),
           ),
         ],
@@ -173,7 +255,8 @@ class CourtsSetupStep extends StatelessWidget {
           child: TextFormField(
             initialValue: initialValue,
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               border: InputBorder.none,
               isDense: true,
             ),
@@ -221,11 +304,13 @@ class CourtsSetupStep extends StatelessWidget {
                 child: TextFormField(
                   initialValue: initialValue,
                   decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.only(right: 12, top: 12, bottom: 12),
+                    contentPadding:
+                        EdgeInsets.only(right: 12, top: 12, bottom: 12),
                     border: InputBorder.none,
                     isDense: true,
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   onChanged: onChanged,
                 ),
               ),
@@ -282,7 +367,8 @@ class CourtsSetupStep extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.grey, width: 1),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             filled: true,
             fillColor: Colors.grey[50],
           ),

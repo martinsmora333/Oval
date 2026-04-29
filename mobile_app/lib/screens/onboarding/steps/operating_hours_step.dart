@@ -38,7 +38,8 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
   @override
   void initState() {
     super.initState();
-    // Initialize with provided data or defaults
+    // Seed local state from the onboarding draft, then publish once after
+    // the first frame so the parent screen is not mutated during build.
     widget.initialData.forEach((day, hours) {
       if (_hours.containsKey(day) && hours is Map<String, dynamic>) {
         _hours[day] = {
@@ -47,7 +48,12 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
         };
       }
     });
-    _notifyParent();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _notifyParent();
+      }
+    });
   }
 
   void _updateTime(String day, String type, String time) {
@@ -73,9 +79,9 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
   }
 
   Future<void> _selectTime(
-    BuildContext context, 
-    String day, 
-    String type, 
+    BuildContext context,
+    String day,
+    String type,
     String currentTime,
   ) async {
     final TimeOfDay? picked = await showTimePicker(
@@ -117,13 +123,13 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
 
   List<Widget> _buildDayWidgets() {
     final widgets = <Widget>[];
-    
+
     for (final day in _dayNames.keys) {
       if (!_hours.containsKey(day)) continue;
-      
+
       final hours = _hours[day]!;
       final isOpen = _isDayOpen(day);
-      
+
       widgets.add(
         Card(
           key: ValueKey('day_$day'),
@@ -143,7 +149,8 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
               if (isOpen) ...[
                 const Divider(height: 1),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   child: Row(
                     children: [
                       Expanded(
@@ -151,7 +158,8 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
                           key: ValueKey('${day}_open'),
                           label: 'Open',
                           time: hours['open']!,
-                          onPressed: () => _selectTime(context, day, 'open', hours['open']!),
+                          onPressed: () =>
+                              _selectTime(context, day, 'open', hours['open']!),
                         ),
                       ),
                       const Padding(
@@ -163,7 +171,8 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
                           key: ValueKey('${day}_close'),
                           label: 'Close',
                           time: hours['close']!,
-                          onPressed: () => _selectTime(context, day, 'close', hours['close']!),
+                          onPressed: () => _selectTime(
+                              context, day, 'close', hours['close']!),
                         ),
                       ),
                     ],
@@ -175,7 +184,7 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
         ),
       );
     }
-    
+
     return widgets;
   }
 
@@ -203,7 +212,8 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
           OutlinedButton.icon(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Special hours feature coming soon')),
+                const SnackBar(
+                    content: Text('Special hours feature coming soon')),
               );
             },
             icon: const Icon(Icons.calendar_today, size: 16),
@@ -247,16 +257,16 @@ class _TimePickerButton extends StatelessWidget {
           Text(
             label.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).hintColor,
-              letterSpacing: 0.5,
-            ),
+                  color: Theme.of(context).hintColor,
+                  letterSpacing: 0.5,
+                ),
           ),
           const SizedBox(height: 4),
           Text(
             formatTime(time),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ],
       ),
@@ -267,13 +277,13 @@ class _TimePickerButton extends StatelessWidget {
     try {
       final parts = time.split(':');
       if (parts.length < 2) return time;
-      
+
       final hour = int.tryParse(parts[0]) ?? 0;
       final minute = int.tryParse(parts[1]) ?? 0;
-      
+
       final period = hour >= 12 ? 'PM' : 'AM';
       final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-      
+
       return '$hour12:${minute.toString().padLeft(2, '0')} $period';
     } catch (e) {
       return time; // Return original time if parsing fails

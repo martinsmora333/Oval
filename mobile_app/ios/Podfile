@@ -84,11 +84,7 @@ post_install do |installer|
     # Set deployment target for all pods
     target.build_configurations.each do |config|
       # Force pods to use our minimum iOS version
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
-      
-      # Ensure pods support arm64 architecture for iOS devices
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64 i386'
-      
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'      
       # Strip debug symbols in release mode to reduce app size
       if config.name == 'Release'
         config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Owholemodule'

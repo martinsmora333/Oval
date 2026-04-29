@@ -23,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final Set<int> _visitedTabs = <int>{0};
 
   static const int _homeTabIndex = 0;
   static const int _invitesTabIndex = 2;
@@ -50,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _selectedIndex = index;
+      _visitedTabs.add(index);
     });
   }
 
@@ -127,11 +129,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> _buildTabs() {
-    return const [
-      _HomeTabContent(),
-      CalendarScreen(showScaffold: false),
-      InvitationsScreen(showScaffold: false),
-      ProfileScreen(showScaffold: false),
+    return [
+      const _HomeTabContent(),
+      _visitedTabs.contains(1)
+          ? const CalendarScreen(showScaffold: false)
+          : const SizedBox.shrink(),
+      _visitedTabs.contains(2)
+          ? const InvitationsScreen(showScaffold: false)
+          : const SizedBox.shrink(),
+      _visitedTabs.contains(3)
+          ? const ProfileScreen(showScaffold: false)
+          : const SizedBox.shrink(),
     ];
   }
 

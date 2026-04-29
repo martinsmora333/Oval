@@ -35,7 +35,11 @@ class _CalendarScreenState extends State<CalendarScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _selectedDay = _focusedDay;
-    _loadBookings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadBookings();
+      }
+    });
   }
 
   @override

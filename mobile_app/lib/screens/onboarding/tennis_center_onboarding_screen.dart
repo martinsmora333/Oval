@@ -205,6 +205,23 @@ class _TennisCenterOnboardingScreenState
     };
   }
 
+  Map<String, OperatingHours> _normalizedOperatingHours() {
+    final rawHours = Map<String, dynamic>.from(
+      _formData['operatingHours'] as Map? ?? const <String, dynamic>{},
+    );
+    final normalized = <String, OperatingHours>{};
+
+    rawHours.forEach((day, hours) {
+      if (hours is Map) {
+        normalized[day] = OperatingHours.fromMap(
+          Map<String, dynamic>.from(hours),
+        );
+      }
+    });
+
+    return normalized;
+  }
+
   Future<GeoPoint> _resolveCenterLocation() async {
     final locationData = _formData['location'];
     if (locationData is Map) {
@@ -270,7 +287,7 @@ class _TennisCenterOnboardingScreenState
         website: _formData['website'],
         address: Address.fromMap(_normalizedAddressData()),
         location: resolvedLocation,
-        operatingHours: _formData['operatingHours'] ?? {},
+        operatingHours: _normalizedOperatingHours(),
         amenities: List<String>.from(_formData['amenities'] ?? []),
         images: [], // Default empty images list
         createdAt: DateTime.now(),

@@ -10,47 +10,54 @@ import '../../utils/responsive_utils.dart';
 
 class BookingsManagementScreen extends StatefulWidget {
   final String tennisCenterId;
-  
+
   const BookingsManagementScreen({
     super.key,
     required this.tennisCenterId,
   });
 
   @override
-  State<BookingsManagementScreen> createState() => _BookingsManagementScreenState();
+  State<BookingsManagementScreen> createState() =>
+      _BookingsManagementScreenState();
 }
 
-class _BookingsManagementScreenState extends State<BookingsManagementScreen> with TickerProviderStateMixin {
+class _BookingsManagementScreenState extends State<BookingsManagementScreen>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.week;
   bool _isLoading = false;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadBookings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadBookings();
+      }
+    });
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _loadBookings() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
       final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDay);
-      
+
       // Check if we have a valid tennis center ID
       if (widget.tennisCenterId.isNotEmpty) {
         await bookingProvider.loadTennisCenterBookings(
@@ -78,31 +85,31 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
       }
     }
   }
-  
+
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     if (!isSameDay(_selectedDay, selectedDay)) {
       setState(() {
         _selectedDay = selectedDay;
         _focusedDay = focusedDay;
       });
-      
+
       _loadBookings();
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final bookingProvider = Provider.of<BookingProvider>(context);
     final bookings = bookingProvider.tennisCenterBookings;
     final tennisCenterName = bookingProvider.tennisCenterName;
-    
+
     // Initialize responsive utils for this screen
     ResponsiveUtils.init(context);
-    
+
     // Calculate responsive sizes
     final double verticalSpacing = ResponsiveUtils.blockSizeVertical * 2;
     final double horizontalSpacing = ResponsiveUtils.blockSizeHorizontal * 3;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Bookings - $tennisCenterName'),
@@ -115,7 +122,8 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
           ],
           onTap: (index) {
             setState(() {
-              _calendarFormat = index == 0 ? CalendarFormat.week : CalendarFormat.twoWeeks;
+              _calendarFormat =
+                  index == 0 ? CalendarFormat.week : CalendarFormat.twoWeeks;
             });
           },
         ),
@@ -144,7 +152,10 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
                 shape: BoxShape.circle,
               ),
               todayDecoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
             ),
@@ -158,14 +169,15 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
               ),
             ),
           ),
-          
+
           // Bookings list
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : bookings.isEmpty
                     ? _buildEmptyState()
-                    : _buildBookingsList(bookings, verticalSpacing, horizontalSpacing),
+                    : _buildBookingsList(
+                        bookings, verticalSpacing, horizontalSpacing),
           ),
         ],
       ),
@@ -179,7 +191,7 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
       ),
     );
   }
-  
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -212,8 +224,9 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
       ),
     );
   }
-  
-  Widget _buildBookingsList(List<BookingModel> bookings, double verticalSpacing, double horizontalSpacing) {
+
+  Widget _buildBookingsList(List<BookingModel> bookings, double verticalSpacing,
+      double horizontalSpacing) {
     return ListView.builder(
       padding: EdgeInsets.all(horizontalSpacing),
       itemCount: bookings.length,
@@ -223,8 +236,9 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
       },
     );
   }
-  
-  Widget _buildBookingCard(BookingModel booking, double verticalSpacing, double horizontalSpacing) {
+
+  Widget _buildBookingCard(
+      BookingModel booking, double verticalSpacing, double horizontalSpacing) {
     // Determine status color
     Color statusColor;
     switch (booking.status) {
@@ -238,7 +252,7 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
         statusColor = Colors.orange;
         break;
     }
-    
+
     return SquircleContainer(
       margin: EdgeInsets.only(bottom: verticalSpacing),
       padding: EdgeInsets.all(horizontalSpacing),
@@ -278,7 +292,7 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // Time slot
           Row(
             children: [
@@ -291,11 +305,12 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // Players
           Row(
             children: [
-              Icon(CupertinoIcons.person_2_fill, color: Colors.grey[600], size: 16),
+              Icon(CupertinoIcons.person_2_fill,
+                  color: Colors.grey[600], size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -308,11 +323,12 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // Payment status
           Row(
             children: [
-              Icon(CupertinoIcons.money_dollar_circle, color: Colors.grey[600], size: 16),
+              Icon(CupertinoIcons.money_dollar_circle,
+                  color: Colors.grey[600], size: 16),
               const SizedBox(width: 8),
               Text(
                 'Payment: ${booking.paymentStatus.toString().split('.').last}',
@@ -327,7 +343,7 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
               ),
             ],
           ),
-          
+
           // Action buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -337,7 +353,8 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
                 label: const Text('Edit'),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Edit Booking feature coming soon')),
+                    const SnackBar(
+                        content: Text('Edit Booking feature coming soon')),
                   );
                 },
               ),
@@ -350,7 +367,8 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen> wit
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Cancel Booking feature coming soon')),
+                    const SnackBar(
+                        content: Text('Cancel Booking feature coming soon')),
                   );
                 },
               ),
