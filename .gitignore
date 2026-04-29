@@ -1,0 +1,51 @@
+# General
+.dart_tool/
+.idea/
+.vscode/
+build/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+*.log
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Flutter.xcconfig
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/Runner.xcworkspace/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner/Info.plist
+ios/Runner/Assets.xcassets/
+ios/.symlinks/
+ios/Podfile.lock
+ios/Runner.xcodeproj/project.pbxproj
+ios/Runner.xcworkspace/contents.xcworkspacedata
+
+# Android
+android/.gradle/
+android/captures/
+android/gradle/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/
+android/app/*.keystore
+android/.gradle/
+android/.idea/
+android/.kotlin/
+android/local.properties
+android/app/build/
+android/gradle/wrapper/
+android/gradlew
+android/gradlew.bat
+
+# Web
+web/.dart_tool/
+web/.flutter-plugins
+web/.flutter-plugins-dependencies

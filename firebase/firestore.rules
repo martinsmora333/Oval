@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isTennisCenter(centerId) {
+      return isSignedIn() && request.auth.uid == centerId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read and write their own data
+      allow read, write: if isOwner(userId);
+      
+      // User subcollections
+      match /bookings/{bookingId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /invitations/{invitationId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /contacts/{contactId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Tennis Centers collection
+    match /tennisCenters/{centerId} {
+      // Anyone can read tennis center data
+      allow read: if true;
+      // Only the tennis center can update its own data
+      allow write: if isTennisCenter(centerId);
+      
+      // Courts subcollection
+      match /courts/{courtId} {
+        // Anyone can read court data
+        allow read: if true;
+        // Only the tennis center can update court data
+        allow write: if isTennisCenter(centerId);
+        
+        // Availability subcollection
+        match /availability/{availabilityId} {
+          // Anyone can read availability data
+          allow read: if true;
+          // Only the tennis center can update availability data
+          allow write: if isTennisCenter(centerId);
+        }
+      }
+    }
+    
+    // Bookings collection
+    match /bookings/{bookingId} {
+      // Users can read their own bookings
+      allow read: if isSignedIn() && 
+                   (request.auth.uid == resource.data.creatorId || 
+                    request.auth.uid == resource.data.inviteeId || 
+                    request.auth.uid == resource.data.tennisCenter);
+      
+      // Users can create bookings
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.creatorId;
+      
+      // Users can update their own bookings
+      allow update: if isSignedIn() && 
+                     (request.auth.uid == resource.data.creatorId || 
+                      request.auth.uid == resource.data.inviteeId || 
+                      request.auth.uid == resource.data.tennisCenter);
+      
+      // Users can delete their own bookings if they're the creator
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.creatorId;
+    }
+    
+    // Invitations collection
+    match /invitations/{invitationId} {
+      // Users can read invitations they're involved in
+      allow read: if isSignedIn() && 
+                   (request.auth.uid == resource.data.creatorId || 
+                    request.auth.uid == resource.data.inviteeId);
+      
+      // Users can create invitations if they're the creator
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.creatorId;
+      
+      // Users can update invitations they're involved in
+      allow update: if isSignedIn() && 
+                     (request.auth.uid == resource.data.creatorId || 
+                      request.auth.uid == resource.data.inviteeId);
+      
+      // Only creators can delete invitations
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.creatorId;
+    }
+  }
+}
