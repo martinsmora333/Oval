@@ -11,10 +11,12 @@ import '../../widgets/squircle_container.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final String bookingId;
+  final bool autoOpenInviteComposer;
 
   const BookingDetailsScreen({
     super.key,
     required this.bookingId,
+    this.autoOpenInviteComposer = false,
   });
 
   @override
@@ -25,6 +27,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   BookingModel? _booking;
   bool _isLoading = true;
   String? _error;
+  bool _didHandleAutoInvite = false;
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           _booking = booking;
           _isLoading = false;
         });
+        _maybeOpenInviteComposer();
       }
     } catch (e) {
       if (mounted) {
@@ -150,6 +154,36 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         ),
       ),
     ).then((_) => _loadBookingDetails());
+  }
+
+  void _maybeOpenInviteComposer() {
+    if (_didHandleAutoInvite ||
+        !widget.autoOpenInviteComposer ||
+        _booking == null) {
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.user?.uid;
+    final isCreator =
+        currentUserId != null && currentUserId == _booking!.creatorId;
+    final canInvite = _booking!.isUpcoming(DateTime.now()) &&
+        isCreator &&
+        _booking!.status == BookingStatus.pending &&
+        _booking!.inviteeId == null;
+
+    if (!canInvite) {
+      _didHandleAutoInvite = true;
+      return;
+    }
+
+    _didHandleAutoInvite = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _invitePlayer();
+    });
   }
 
   DateTime _parseBookingDate(BookingModel booking) {

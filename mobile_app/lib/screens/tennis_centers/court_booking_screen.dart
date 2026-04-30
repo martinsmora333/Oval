@@ -130,12 +130,15 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
 
       final messenger = ScaffoldMessenger.of(context);
       final successMessage = _isInvitingPlayer
-          ? 'Booking hold created. Add players from booking details.'
+          ? 'Booking hold created. Choose a player to invite next.'
           : 'Booking hold created.';
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => BookingDetailsScreen(bookingId: bookingId),
+          builder: (context) => BookingDetailsScreen(
+            bookingId: bookingId,
+            autoOpenInviteComposer: _isInvitingPlayer,
+          ),
         ),
       );
       messenger.showSnackBar(
