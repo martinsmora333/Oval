@@ -208,16 +208,27 @@ class _OperatingHoursStepState extends State<OperatingHoursStep> {
           const SizedBox(height: 24),
           ..._buildDayWidgets(),
           const SizedBox(height: 16),
-          // Add special hours button (coming soon)
-          OutlinedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Special hours feature coming soon')),
-              );
-            },
-            icon: const Icon(Icons.calendar_today, size: 16),
-            label: const Text('Add Special Hours (e.g., Holidays)'),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.grey),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Special hours and holiday overrides are not configured in this step yet. Set your regular hours now and adjust exceptions later.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

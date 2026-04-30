@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import 'package:mobile_app/config/app_config.dart';
 import 'package:provider/provider.dart';
 import 'package:figma_squircle/figma_squircle.dart';
 
@@ -14,6 +16,32 @@ import 'package:mobile_app/screens/profile/profile_screen.dart';
 import 'package:mobile_app/screens/tennis_centers/tennis_centers_screen.dart';
 import 'package:mobile_app/widgets/squircle_button.dart';
 import 'package:mobile_app/widgets/squircle_container.dart';
+
+void _openMapOrFallback(BuildContext context) {
+  if (AppConfig.hasGoogleMapsConfig) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => const TennisCentersMapScreen(),
+      ),
+    );
+    return;
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Map view is unavailable in this build. Showing centre list instead.',
+      ),
+    ),
+  );
+  Navigator.push(
+    context,
+    CupertinoPageRoute(
+      builder: (context) => const TennisCentersScreen(),
+    ),
+  );
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -279,12 +307,7 @@ class _SearchSection extends StatelessWidget {
                 const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => const TennisCentersMapScreen(),
-                      ),
-                    );
+                    _openMapOrFallback(context);
                   },
                   child: SquircleContainer(
                     padding:

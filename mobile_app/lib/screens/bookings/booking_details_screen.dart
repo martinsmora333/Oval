@@ -6,7 +6,6 @@ import '../../models/booking_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/booking_provider.dart';
 import '../invitations/create_invitation_screen.dart';
-import '../../widgets/squircle_button.dart';
 import '../../widgets/squircle_container.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
@@ -567,13 +566,18 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     const SizedBox(height: 16),
                     if (_booking!.status == BookingStatus.confirmed &&
                         _booking!.paymentStatus != PaymentStatus.complete) ...[
-                      SquircleButton(
-                        label: 'Make Payment',
-                        onPressed: () {
-                          // Navigate to payment screen
-                        },
+                      Container(
                         width: double.infinity,
-                        height: 50,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'Payment collection is not enabled in this build yet.',
+                          style: TextStyle(color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ],
                   ],

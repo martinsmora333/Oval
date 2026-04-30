@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 
 import '../models/availability_model.dart';
@@ -25,6 +26,21 @@ class BookingProvider with ChangeNotifier {
   String get tennisCenterName => _tennisCenterName;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  void _notifyListenersSafely() {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      super.notifyListeners();
+      return;
+    }
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (hasListeners) {
+        super.notifyListeners();
+      }
+    });
+  }
+
 
   Future<void> loadUserBookings(String userId,
       {bool forceRefresh = false}) async {
@@ -35,7 +51,7 @@ class BookingProvider with ChangeNotifier {
 
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       _userBookings = await _bookingsRepository
@@ -56,7 +72,7 @@ class BookingProvider with ChangeNotifier {
       _userBookings = <BookingModel>[];
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -71,7 +87,7 @@ class BookingProvider with ChangeNotifier {
   ) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       final tennisCenter =
@@ -90,14 +106,14 @@ class BookingProvider with ChangeNotifier {
       debugPrint('Error loading availability: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<String> createBooking(BookingModel booking) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       final bookingId = await _bookingsRepository.createBooking(booking);
@@ -109,14 +125,14 @@ class BookingProvider with ChangeNotifier {
       throw Exception('Failed to create booking: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<bool> cancelBooking(String bookingId, String userId) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       await _bookingsRepository.cancelBooking(
@@ -131,7 +147,7 @@ class BookingProvider with ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -142,7 +158,7 @@ class BookingProvider with ChangeNotifier {
   }) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       await _bookingsRepository.cancelBooking(
@@ -157,7 +173,7 @@ class BookingProvider with ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -194,7 +210,7 @@ class BookingProvider with ChangeNotifier {
     _isLoading = true;
     _error = null;
     _tennisCenterBookings = <BookingModel>[];
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       if (tennisCenterId.isEmpty) {
@@ -219,7 +235,7 @@ class BookingProvider with ChangeNotifier {
       _tennisCenterBookings = <BookingModel>[];
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 }

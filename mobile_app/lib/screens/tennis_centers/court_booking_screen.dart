@@ -107,14 +107,16 @@ class _CourtBookingScreenState extends State<CourtBookingScreen> {
         tennisCenter: widget.tennisCenterId,
         creatorId: authProvider.user!.uid,
         creatorName: authProvider.userModel!.displayName,
-        startsAt: BookingModel.combineDateAndTime(
-          _selectedDate,
-          _selectedTimeSlot!.startTime,
-        ),
-        endsAt: BookingModel.combineDateAndTime(
-          _selectedDate,
-          _selectedTimeSlot!.endTime,
-        ),
+        startsAt: _selectedTimeSlot!.startsAt ??
+            BookingModel.combineDateAndTime(
+              _selectedDate,
+              _selectedTimeSlot!.startTime,
+            ),
+        endsAt: _selectedTimeSlot!.endsAt ??
+            BookingModel.combineDateAndTime(
+              _selectedDate,
+              _selectedTimeSlot!.endTime,
+            ),
         price: widget.court.pricePerHour,
         status: BookingStatus.pending,
         paymentStatus: PaymentStatus.pending,

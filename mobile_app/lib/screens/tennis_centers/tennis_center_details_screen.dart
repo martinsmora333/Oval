@@ -225,17 +225,6 @@ class _TennisCenterDetailsScreenState extends State<TennisCenterDetailsScreen> {
                 pinned: true,
                 backgroundColor: Colors.white,
                 elevation: 0,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.photo_camera),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Image upload coming soon')),
-                      );
-                    },
-                  ),
-                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: center.imageUrl != null
                       ? Image.network(

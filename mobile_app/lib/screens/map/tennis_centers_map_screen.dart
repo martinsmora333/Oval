@@ -6,6 +6,7 @@ import 'package:figma_squircle/figma_squircle.dart';
 import 'package:provider/provider.dart';
 
 import '../../widgets/squircle_container.dart';
+import '../../config/app_config.dart';
 import '../../utils/map_utils.dart';
 import '../../utils/map_style_utils.dart';
 import '../../utils/map_cluster_manager.dart';
@@ -64,7 +65,7 @@ class _TennisCentersMapScreenState extends State<TennisCentersMapScreen> {
   void initState() {
     super.initState();
     _clusterManager = OvalMapClusterManager(
-      clusterColor: Theme.of(context).primaryColor,
+      clusterColor: const Color(0xFF1A5D1A),
       clusterTextColor: Colors.white,
       onItemTap: _onMarkerTapped,
     );
@@ -233,6 +234,46 @@ class _TennisCentersMapScreenState extends State<TennisCentersMapScreen> {
     );
   }
 
+  Widget _buildMapsUnavailableState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              CupertinoIcons.map,
+              size: 56,
+              color: Color(0xFF1A5D1A),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Map view is unavailable in this build.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Google Maps is not configured, so map rendering is disabled. You can still browse centres from the list view.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/tennis_centers');
+              },
+              child: const Text('Browse Centres'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -245,9 +286,11 @@ class _TennisCentersMapScreenState extends State<TennisCentersMapScreen> {
               )
             : null,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
+      body: !AppConfig.hasGoogleMapsConfig
+          ? _buildMapsUnavailableState(context)
+          : _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Stack(
               children: [
                 // Map
                 GoogleMap(
@@ -284,7 +327,7 @@ class _TennisCentersMapScreenState extends State<TennisCentersMapScreen> {
                     color: Colors.white,
                     child: InkWell(
                       onTap: () {
-                        // Navigate to search screen
+                        Navigator.pushNamed(context, '/tennis_centers');
                       },
                       borderRadius: SmoothBorderRadius(
                         cornerRadius: 20.0,

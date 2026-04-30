@@ -428,14 +428,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'Payment Methods',
                             'Not set up',
                           ),
-                    _buildActionItem(
+                    _buildProfileItem(
                       context,
-                      'Manage Payment Methods',
-                      () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Coming soon')),
-                        );
-                      },
+                      'Status',
+                      'Payment management is not enabled in this build.',
                     ),
                   ],
                 ),
@@ -606,35 +602,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionItem(
-      BuildContext context, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                fontFamily: 'TexGyreAdventor',
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: Theme.of(context).colorScheme.primary,
-              size: 22,
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -36,6 +36,7 @@ android/.gradle/
 android/.kotlin/
 android/app/build/
 android/local.properties
+android/key.properties
 
 # Desktop generated files
 linux/flutter/ephemeral/

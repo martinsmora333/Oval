@@ -1,11 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'app_config.dart';
 
 class MapsConfig {
   static Future<void> initialize() async {
-    if (googleMapsApiKey.isEmpty) {
-      throw StateError(
-        'Missing Google Maps configuration. Pass GOOGLE_MAPS_API_KEY with '
-        '--dart-define or use ./scripts/flutter_with_env.sh.',
+    if (!AppConfig.hasGoogleMapsConfig) {
+      debugPrint(
+        'Google Maps configuration is missing or placeholder-only. Map features will stay disabled in this build.',
       );
     }
   }

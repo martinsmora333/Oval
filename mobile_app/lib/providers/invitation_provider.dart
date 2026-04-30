@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../models/invitation_model.dart';
 import '../repositories/invitations_repository.dart';
@@ -15,11 +16,26 @@ class InvitationProvider with ChangeNotifier {
   List<InvitationModel> get receivedInvitations => _receivedInvitations;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  void _notifyListenersSafely() {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      super.notifyListeners();
+      return;
+    }
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (hasListeners) {
+        super.notifyListeners();
+      }
+    });
+  }
+
 
   Future<void> loadSentInvitations(String userId) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       _sentInvitations =
@@ -29,14 +45,14 @@ class InvitationProvider with ChangeNotifier {
       debugPrint('Error loading sent invitations: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<void> loadReceivedInvitations(String userId) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       _receivedInvitations =
@@ -46,14 +62,14 @@ class InvitationProvider with ChangeNotifier {
       debugPrint('Error loading received invitations: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<bool> createInvitation(InvitationModel invitation) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       await _invitationsRepository.createInvitation(invitation);
@@ -65,14 +81,14 @@ class InvitationProvider with ChangeNotifier {
       throw Exception('Failed to create invitation: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<bool> acceptInvitation(String invitationId, String userId) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       await _invitationsRepository.updateInvitationStatus(
@@ -88,14 +104,14 @@ class InvitationProvider with ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<bool> declineInvitation(String invitationId, String userId) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       await _invitationsRepository.updateInvitationStatus(
@@ -111,14 +127,14 @@ class InvitationProvider with ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   Future<bool> cancelInvitation(String invitationId, String userId) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
       await _invitationsRepository.deleteInvitation(invitationId);
@@ -130,7 +146,7 @@ class InvitationProvider with ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
