@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:figma_squircle/figma_squircle.dart';
 
+import 'package:mobile_app/models/booking_model.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
 import 'package:mobile_app/providers/booking_provider.dart';
 import 'package:mobile_app/providers/invitation_provider.dart';
@@ -413,10 +414,16 @@ class _UpcomingMatchesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bookingProvider = context.watch<BookingProvider>();
+    final now = DateTime.now();
     final upcomingBookings = bookingProvider.userBookings
         .where((booking) {
-          return booking.isUpcoming(DateTime.now()) ||
-              booking.isInProgress(DateTime.now());
+          if (booking.status == BookingStatus.cancelled ||
+              booking.status == BookingStatus.completed ||
+              booking.status == BookingStatus.noShow) {
+            return false;
+          }
+
+          return booking.isUpcoming(now) || booking.isInProgress(now);
         })
         .take(3)
         .toList(growable: false);
