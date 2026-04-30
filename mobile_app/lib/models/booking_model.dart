@@ -69,6 +69,7 @@ class BookingModel {
   final String? courtName;
   final String tennisCenter;
   final String? tennisCenterName;
+  final String? tennisCenterAddress;
   final DateTime startsAt;
   final DateTime endsAt;
   final String creatorId;
@@ -91,6 +92,7 @@ class BookingModel {
     this.courtName,
     required this.tennisCenter,
     this.tennisCenterName,
+    this.tennisCenterAddress,
     required this.startsAt,
     required this.endsAt,
     required this.creatorId,
@@ -124,6 +126,8 @@ class BookingModel {
           data['tennisCenter'] as String? ?? data['center_id'] as String? ?? '',
       tennisCenterName: data['tennisCenterName'] as String? ??
           data['tennis_center_name'] as String?,
+      tennisCenterAddress: data['tennisCenterAddress'] as String? ??
+          data['tennis_center_address'] as String?,
       startsAt: startsAt,
       endsAt: endsAt,
       creatorId:
@@ -162,6 +166,7 @@ class BookingModel {
       'courtName': courtName,
       'tennisCenter': tennisCenter,
       'tennisCenterName': tennisCenterName,
+      'tennisCenterAddress': tennisCenterAddress,
       'startsAt': serializeDateTime(startsAt),
       'endsAt': serializeDateTime(endsAt),
       'date': date,

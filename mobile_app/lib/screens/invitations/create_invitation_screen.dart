@@ -33,8 +33,12 @@ class CreateInvitationScreen extends StatefulWidget {
 
 class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
   final _messageController = TextEditingController();
+  final _searchController = TextEditingController();
   UserModel? _selectedContact;
+  List<UserModel> _searchResults = <UserModel>[];
   bool _isLoading = false;
+  bool _isSearching = false;
+  bool _hasSearched = false;
   String? _error;
   
   @override
@@ -57,7 +61,81 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
   @override
   void dispose() {
     _messageController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _searchPlayers() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final contactsProvider = Provider.of<ContactsProvider>(context, listen: false);
+    final currentUser = authProvider.user;
+    final query = _searchController.text.trim();
+
+    if (currentUser == null || query.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _searchResults = <UserModel>[];
+          _hasSearched = query.isNotEmpty;
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _hasSearched = true;
+    });
+
+    try {
+      final results = await contactsProvider.searchUsers(query, currentUser.uid);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _searchResults = results;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _addContact(UserModel user) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final contactsProvider = Provider.of<ContactsProvider>(context, listen: false);
+    final currentUser = authProvider.user;
+
+    if (currentUser == null) {
+      return;
+    }
+
+    final success = await contactsProvider.addContact(currentUser.uid, user.id);
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? '${user.displayName} added to contacts' : 'Failed to add contact',
+        ),
+      ),
+    );
+
+    if (!success) {
+      return;
+    }
+
+    setState(() {
+      _selectedContact = user;
+      _searchResults = <UserModel>[];
+      _searchController.clear();
+      _hasSearched = false;
+    });
   }
   
   Future<void> _sendInvitation() async {
@@ -270,14 +348,65 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
-                          SquircleButton(
-                            label: 'Add Contacts',
-                            onPressed: () {
-                              // Navigate to add contacts screen
-                            },
-                            width: 150,
-                            height: 50,
+                          TextField(
+                            controller: _searchController,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (_) => _searchPlayers(),
+                            decoration: InputDecoration(
+                              hintText: 'Search players by name or email',
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: IconButton(
+                                onPressed: _isSearching ? null : _searchPlayers,
+                                icon: _isSearching
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.arrow_forward),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
+                          if (_searchResults.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: Column(
+                                children: _searchResults
+                                    .map(
+                                      (user) => ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        leading: CircleAvatar(
+                                          backgroundColor: Theme.of(context).colorScheme.primary,
+                                          child: Text(
+                                            user.displayName[0].toUpperCase(),
+                                            style: const TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                        title: Text(user.displayName),
+                                        subtitle: Text(user.email),
+                                        trailing: TextButton(
+                                          onPressed: () => _addContact(user),
+                                          child: const Text('Add'),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                              ),
+                            ),
+                          ] else if (_hasSearched && !_isSearching) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              'No players found for that search.',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ],
                       ),
                     ),

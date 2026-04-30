@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../models/booking_model.dart';
 import '../../models/invitation_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/invitation_provider.dart';
@@ -21,6 +22,8 @@ class InvitationsScreen extends StatefulWidget {
 class _InvitationsScreenState extends State<InvitationsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Map<String, Future<BookingModel?>> _bookingFutures =
+      <String, Future<BookingModel?>>{};
 
   @override
   void initState() {
@@ -299,8 +302,7 @@ class _InvitationsScreenState extends State<InvitationsScreen>
 
             // Booking details
             FutureBuilder(
-              future: Provider.of<BookingProvider>(context, listen: false)
-                  .getBookingById(invitation.bookingId),
+              future: _getBookingFuture(invitation.bookingId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -520,7 +522,15 @@ class _InvitationsScreenState extends State<InvitationsScreen>
                                 ? 'queued for invitation'
                                 : invitation.status == InvitationStatus.accepted
                                     ? 'accepted your invitation'
-                                    : 'declined your invitation',
+                                    : invitation.status == InvitationStatus.declined
+                                        ? 'declined your invitation'
+                                        : invitation.status ==
+                                                InvitationStatus.cancelled
+                                            ? 'invitation cancelled'
+                                            : invitation.status ==
+                                                    InvitationStatus.expired
+                                                ? 'invitation expired'
+                                                : 'invitation skipped',
                         style: TextStyle(
                           color: Colors.grey[800],
                         ),
@@ -553,8 +563,7 @@ class _InvitationsScreenState extends State<InvitationsScreen>
 
             // Booking details
             FutureBuilder(
-              future: Provider.of<BookingProvider>(context, listen: false)
-                  .getBookingById(invitation.bookingId),
+              future: _getBookingFuture(invitation.bookingId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -668,11 +677,14 @@ class _InvitationsScreenState extends State<InvitationsScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final invitationProvider =
         Provider.of<InvitationProvider>(context, listen: false);
+    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
 
     if (authProvider.user != null) {
       try {
         final success = await invitationProvider.acceptInvitation(
             invitationId, authProvider.user!.uid);
+        await bookingProvider.refreshBookings(authProvider.user!.uid);
+        _bookingFutures.clear();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -697,11 +709,14 @@ class _InvitationsScreenState extends State<InvitationsScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final invitationProvider =
         Provider.of<InvitationProvider>(context, listen: false);
+    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
 
     if (authProvider.user != null) {
       try {
         final success = await invitationProvider.declineInvitation(
             invitationId, authProvider.user!.uid);
+        await bookingProvider.refreshBookings(authProvider.user!.uid);
+        _bookingFutures.clear();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -726,11 +741,14 @@ class _InvitationsScreenState extends State<InvitationsScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final invitationProvider =
         Provider.of<InvitationProvider>(context, listen: false);
+    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
 
     if (authProvider.user != null) {
       try {
         final success = await invitationProvider.cancelInvitation(
             invitationId, authProvider.user!.uid);
+        await bookingProvider.refreshBookings(authProvider.user!.uid);
+        _bookingFutures.clear();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -785,5 +803,13 @@ class _InvitationsScreenState extends State<InvitationsScreen>
     } else {
       return 'Just now';
     }
+  }
+
+  Future<BookingModel?> _getBookingFuture(String bookingId) {
+    return _bookingFutures.putIfAbsent(
+      bookingId,
+      () => Provider.of<BookingProvider>(context, listen: false)
+          .getBookingById(bookingId),
+    );
   }
 }

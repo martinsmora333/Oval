@@ -155,7 +155,7 @@ class BookingsRepository extends RepositorySupport {
         ? const <Map<String, dynamic>>[]
         : ((await client
                 .from('tennis_centers')
-                .select('id,name')
+                .select('id,name,street,city,state,postal_code,country')
                 .inFilter('id', centerIds)) as List)
             .map((row) => Map<String, dynamic>.from(row))
             .toList(growable: false);
@@ -172,6 +172,10 @@ class BookingsRepository extends RepositorySupport {
     final centerNames = <String, String>{
       for (final row in centerRows)
         row['id'] as String: row['name'] as String? ?? '',
+    };
+    final centerAddresses = <String, String>{
+      for (final row in centerRows)
+        row['id'] as String: _formatCenterAddress(row),
     };
     final courtNames = <String, String>{
       for (final row in courtRows)
@@ -195,6 +199,7 @@ class BookingsRepository extends RepositorySupport {
         courtName: courtNames[courtId],
         tennisCenter: centerId,
         tennisCenterName: centerNames[centerId],
+        tennisCenterAddress: centerAddresses[centerId],
         startsAt: startsAt,
         endsAt: endsAt,
         creatorId: creatorId,
@@ -214,5 +219,17 @@ class BookingsRepository extends RepositorySupport {
             : parseDbDateTime(row['confirmed_at']),
       );
     }).toList(growable: false);
+  }
+
+  String _formatCenterAddress(Map<String, dynamic> row) {
+    final parts = <String>[
+      row['street'] as String? ?? '',
+      row['city'] as String? ?? '',
+      row['state'] as String? ?? '',
+      row['postal_code'] as String? ?? '',
+      row['country'] as String? ?? '',
+    ].where((part) => part.trim().isNotEmpty).toList(growable: false);
+
+    return parts.join(', ');
   }
 }

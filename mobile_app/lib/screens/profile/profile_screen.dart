@@ -173,17 +173,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Stack(
                   children: [
-                    // Tennis ball pattern for background
-                    Positioned.fill(
-                      child: Opacity(
-                        opacity: 0.1,
-                        child: Image.network(
-                          'https://img.freepik.com/free-vector/tennis-ball-pattern-background_1412-34.jpg',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox(),
-                        ),
-                      ),
+                    Positioned(
+                      top: -28,
+                      left: -18,
+                      child: _buildHeaderOrb(110),
+                    ),
+                    Positioned(
+                      top: 26,
+                      right: -30,
+                      child: _buildHeaderOrb(90),
+                    ),
+                    Positioned(
+                      bottom: -20,
+                      right: 72,
+                      child: _buildHeaderOrb(64),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
@@ -529,6 +532,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderOrb(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color.fromRGBO(255, 255, 255, 0.1),
+        border: Border.all(
+          color: const Color.fromRGBO(255, 255, 255, 0.16),
+          width: 2,
+        ),
       ),
     );
   }

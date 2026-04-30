@@ -54,16 +54,7 @@ class _CalendarScreenState extends State<CalendarScreen>
   }
 
   // Get booking date time
-  DateTime _getBookingDateTime(BookingModel booking) {
-    try {
-      final date = booking.date;
-      final time = booking.startTime;
-      final dateTimeStr = '$date ${time.padLeft(5, '0')}';
-      return DateFormat('yyyy-MM-dd HH:mm').parse(dateTimeStr);
-    } catch (e) {
-      return DateTime.now();
-    }
-  }
+  DateTime _getBookingDateTime(BookingModel booking) => booking.startsAt;
 
   // Launch maps with tennis center address
   Future<void> _launchMaps(String address) async {
@@ -108,25 +99,16 @@ class _CalendarScreenState extends State<CalendarScreen>
     Map<DateTime, List<BookingModel>> events = {};
 
     for (var booking in bookingProvider.userBookings) {
-      // Parse date string to DateTime
-      final dateParts = booking.date.split('-');
-      if (dateParts.length == 3) {
-        try {
-          final year = int.parse(dateParts[0]);
-          final month = int.parse(dateParts[1]);
-          final day = int.parse(dateParts[2]);
+      final bookingDate = DateTime(
+        booking.startsAt.year,
+        booking.startsAt.month,
+        booking.startsAt.day,
+      );
 
-          final bookingDate = DateTime(year, month, day);
-
-          if (events[bookingDate] != null) {
-            events[bookingDate]!.add(booking);
-          } else {
-            events[bookingDate] = [booking];
-          }
-        } catch (e) {
-          // Skip invalid dates
-          debugPrint('Error parsing date: ${booking.date}');
-        }
+      if (events[bookingDate] != null) {
+        events[bookingDate]!.add(booking);
+      } else {
+        events[bookingDate] = [booking];
       }
     }
 
@@ -169,7 +151,12 @@ class _CalendarScreenState extends State<CalendarScreen>
       ),
       child: InkWell(
         onTap: () {
-          // Navigate to booking details
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailsScreen(bookingId: booking.id),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -198,25 +185,13 @@ class _CalendarScreenState extends State<CalendarScreen>
                       ),
                     ),
                   ),
-                  // Edit button
-                  IconButton(
-                    icon:
-                        Icon(Icons.edit, size: 20, color: Colors.grey.shade600),
-                    onPressed: () {
-                      // TODO: Implement edit functionality
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
                   // Map button
                   IconButton(
                     icon: Icon(Icons.location_on,
                         size: 20, color: Colors.blue.shade600),
-                    onPressed: () {
-                      final address =
-                          '${booking.tennisCenterName}, ${booking.tennisCenter}';
-                      _launchMaps(address);
-                    },
+                    onPressed: (booking.tennisCenterAddress ?? '').isEmpty
+                        ? null
+                        : () => _launchMaps(booking.tennisCenterAddress!),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -235,7 +210,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                booking.tennisCenter,
+                booking.tennisCenterAddress ?? 'Address unavailable',
                 style: TextStyle(
                   fontSize: 14,
                   color: isPast ? Colors.grey.shade400 : Colors.grey.shade600,
