@@ -135,6 +135,32 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> cancelTennisCenterBooking(
+    String bookingId,
+    String tennisCenterId, {
+    String? date,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _bookingsRepository.cancelBooking(
+        bookingId,
+        cancelReason: 'manager_cancelled',
+      );
+      await loadTennisCenterBookings(tennisCenterId, date: date);
+      return true;
+    } catch (e) {
+      _error = 'Failed to cancel tennis center booking';
+      debugPrint('Error cancelling tennis center booking: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<BookingModel?> getBookingById(String bookingId) async {
     try {
       return await _bookingsRepository.getBooking(bookingId);

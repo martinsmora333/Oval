@@ -298,22 +298,6 @@ class _CourtsManagementScreenState extends State<CourtsManagementScreen> {
                   ),
                 ],
               ),
-              
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
-                    icon: const Icon(CupertinoIcons.clock, size: 16),
-                    label: const Text('Availability'),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Court Availability feature coming soon')),
-                      );
-                    },
-                  ),
-                ],
-              ),
             ],
           ),
         );

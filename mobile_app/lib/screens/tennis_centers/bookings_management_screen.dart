@@ -3,10 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/booking_model.dart';
 import '../../providers/booking_provider.dart';
 import '../../widgets/squircle_container.dart';
 import '../../utils/responsive_utils.dart';
+import '../bookings/booking_details_screen.dart';
 
 class BookingsManagementScreen extends StatefulWidget {
   final String tennisCenterId;
@@ -111,6 +113,73 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen>
     }
   }
 
+  void _openBookingDetails(String bookingId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingDetailsScreen(bookingId: bookingId),
+      ),
+    );
+  }
+
+  Future<void> _cancelBooking(BookingModel booking) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = authProvider.user;
+    if (currentUser == null) {
+      return;
+    }
+
+    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+    final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDay);
+    final success = await bookingProvider.cancelTennisCenterBooking(
+      booking.id,
+      widget.tennisCenterId,
+      date: formattedDate,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Booking cancelled' : 'Failed to cancel booking',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCancelDialog(BookingModel booking) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Cancel booking'),
+            content: const Text(
+              'This will cancel the booking for all players. This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Keep booking'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Cancel booking'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    await _cancelBooking(booking);
+  }
+
   @override
   Widget build(BuildContext context) {
     final bookingProvider = Provider.of<BookingProvider>(context);
@@ -211,14 +280,6 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen>
         bottom: tabBar,
       ),
       body: calendarAndList,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Add Booking feature coming soon')),
-          );
-        },
-        child: const Icon(CupertinoIcons.add),
-      ),
     );
   }
 
@@ -283,15 +344,21 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen>
         break;
     }
 
+    final canCancel = booking.status == BookingStatus.pending ||
+        booking.status == BookingStatus.confirmed;
+
     return SquircleContainer(
       margin: EdgeInsets.only(bottom: verticalSpacing),
       padding: EdgeInsets.all(horizontalSpacing),
       color: Colors.white,
       cornerRadius: 16,
       cornerSmoothing: 0.6,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: InkWell(
+        onTap: () => _openBookingDetails(booking.id),
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Court and time info
           Row(
             children: [
@@ -379,32 +446,27 @@ class _BookingsManagementScreenState extends State<BookingsManagementScreen>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton.icon(
-                icon: const Icon(CupertinoIcons.pencil, size: 16),
-                label: const Text('Edit'),
+                icon: const Icon(CupertinoIcons.info_circle, size: 16),
+                label: const Text('Details'),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Edit Booking feature coming soon')),
-                  );
+                  _openBookingDetails(booking.id);
                 },
               ),
-              const SizedBox(width: 8),
-              TextButton.icon(
-                icon: const Icon(CupertinoIcons.xmark_circle, size: 16),
-                label: const Text('Cancel'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red,
+              if (canCancel) ...[
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  icon: const Icon(CupertinoIcons.xmark_circle, size: 16),
+                  label: const Text('Cancel'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                  onPressed: () => _showCancelDialog(booking),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Cancel Booking feature coming soon')),
-                  );
-                },
-              ),
+              ],
             ],
           ),
         ],
+        ),
       ),
     );
   }

@@ -337,6 +337,15 @@ class _TennisCenterOnboardingScreenState
                 Navigator.of(context)
                     .pushReplacementNamed('/tennis-center-dashboard');
               },
+              onAddMoreCourts: () {
+                Navigator.of(context).pushReplacementNamed(
+                  '/add_court',
+                  arguments: <String, dynamic>{
+                    'tennisCenterId': savedCenterId,
+                    'tennisCenterName': tennisCenter.name,
+                  },
+                );
+              },
             ),
           ),
         );

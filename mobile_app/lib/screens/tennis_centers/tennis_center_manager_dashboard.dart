@@ -164,10 +164,7 @@ class _TennisCenterManagerDashboardState extends State<TennisCenterManagerDashbo
           SquircleButton(
             label: 'Add Tennis Center',
             onPressed: () {
-              // TODO: Navigate to add tennis center screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add Tennis Center feature coming soon')),
-              );
+              Navigator.pushNamed(context, '/tennis-center-onboarding');
             },
             width: 200,
           ),

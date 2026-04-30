@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/court_model.dart';
 import '../../models/tennis_center_model.dart';
 import '../../providers/tennis_centers_provider.dart';
@@ -19,6 +20,20 @@ class TennisCenterDetailsScreen extends StatefulWidget {
 }
 
 class _TennisCenterDetailsScreenState extends State<TennisCenterDetailsScreen> {
+  Future<void> _launchUri(Uri uri) async {
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _launchWebsite(String website) async {
+    final normalized = website.startsWith('http://') ||
+            website.startsWith('https://')
+        ? website
+        : 'https://$website';
+    await _launchUri(Uri.parse(normalized));
+  }
+
   // Build address section
   Widget _buildAddressSection(TennisCenterModel center) {
     return Column(
@@ -46,17 +61,25 @@ class _TennisCenterDetailsScreenState extends State<TennisCenterDetailsScreen> {
 
     if (center.phoneNumber.trim().isNotEmpty) {
       rows.add(
-        Row(
-          children: [
-            const Icon(Icons.phone, size: 20, color: Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                center.phoneNumber,
-                style: const TextStyle(fontSize: 16),
-              ),
+        GestureDetector(
+          onTap: () => _launchUri(
+            Uri(
+              scheme: 'tel',
+              path: center.phoneNumber,
             ),
-          ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.phone, size: 20, color: Colors.grey),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  center.phoneNumber,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -66,17 +89,25 @@ class _TennisCenterDetailsScreenState extends State<TennisCenterDetailsScreen> {
         rows.add(const SizedBox(height: 8));
       }
       rows.add(
-        Row(
-          children: [
-            const Icon(Icons.email, size: 20, color: Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                center.email,
-                style: const TextStyle(fontSize: 16),
-              ),
+        GestureDetector(
+          onTap: () => _launchUri(
+            Uri(
+              scheme: 'mailto',
+              path: center.email,
             ),
-          ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.email, size: 20, color: Colors.grey),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  center.email,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -88,7 +119,7 @@ class _TennisCenterDetailsScreenState extends State<TennisCenterDetailsScreen> {
       rows.add(
         GestureDetector(
           onTap: () {
-            // TODO: Launch URL
+            _launchWebsite(center.website!);
           },
           child: Row(
             children: [

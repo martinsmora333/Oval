@@ -3,10 +3,12 @@ import 'package:flutter/cupertino.dart';
 
 class OnboardingCompleteScreen extends StatelessWidget {
   final VoidCallback onContinue;
+  final VoidCallback? onAddMoreCourts;
 
   const OnboardingCompleteScreen({
     super.key,
     required this.onContinue,
+    this.onAddMoreCourts,
   });
 
   @override
@@ -87,9 +89,7 @@ class OnboardingCompleteScreen extends StatelessWidget {
               
               // Additional actions
               TextButton(
-                onPressed: () {
-                  // TODO: Navigate to add courts screen
-                },
+                onPressed: onAddMoreCourts,
                 child: const Text('Add More Courts'),
               ),
             ],
