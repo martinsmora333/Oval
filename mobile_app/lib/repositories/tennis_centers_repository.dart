@@ -443,8 +443,8 @@ class TennisCentersRepository extends RepositorySupport {
               date: row['slot_date'] as String? ?? formattedDate,
               startTime: row['start_time'] as String? ?? '',
               endTime: row['end_time'] as String? ?? '',
-              startsAt: row['starts_at'] == null ? null : parseDbDateTime(row['starts_at']),
-              endsAt: row['ends_at'] == null ? null : parseDbDateTime(row['ends_at']),
+              startsAt: _parseAvailabilityInstant(row['starts_at']),
+              endsAt: _parseAvailabilityInstant(row['ends_at']),
               status: _availabilityStatusFromDb(row['status'] as String?),
               price: readDouble(row['price'], fallback: 0),
               specialEvent: row['special_event'] as bool? ?? false,
@@ -457,6 +457,19 @@ class TennisCentersRepository extends RepositorySupport {
       debugPrint('Error getting court availability: $e');
       return const <AvailabilityModel>[];
     }
+  }
+
+  DateTime? _parseAvailabilityInstant(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is DateTime) {
+      return value.isUtc ? value : value.toUtc();
+    }
+    if (value is String && value.isNotEmpty) {
+      return DateTime.parse(value).toUtc();
+    }
+    return null;
   }
 
   Map<String, dynamic> validateAddress(dynamic address) {
